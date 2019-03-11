@@ -38,3 +38,5 @@ paper keywords: permutation invariant mnist--Lecunn
 ### TODO from Marius: 
 The Limitations of Adversarial Training and the Blind-Spot Attack - specify 10 test imgs, train 100 plain models, draw the bar-graph for each test img; train 100 badly shuffled (low test acc) models, draw the bar-graph; train 100 well shuffled (high test acc) models, draw the bar-graph
 
+[Experiment Results](https://docs.google.com/document/d/1DUt42R4J8jjy0nQiNqRUI6UvecLtFoDjJiu8tiAMg2w/edit)
+
