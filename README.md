@@ -1,74 +1,41 @@
-# pytorch-classification
-Classification on CIFAR-10/100 and ImageNet with PyTorch.
+# Shuffle
+This doc contains experimental results of shuffling.
 
-## Features
-* Unified interface for different network architectures
-* Multi-GPU support
-* Training progress bar with rich info
-* Training log and training curve visualization code (see `./utils/logger.py`)
+I will test 4 different dataset, 6 different shuffle strategy, 2 different models, different layers.
 
-## Install
-* Install [PyTorch](http://pytorch.org/)
-* Clone recursively
-  ```
-  git clone --recursive https://github.com/bearpaw/pytorch-classification.git
-  ```
+No data augmentation; no dropout; no pre-training; same learning rate; same learning schedule; different dataset use different normalization for images
 
-## Training
-Please see the [Training recipes](TRAINING.md) for how to train the models.
+Dataset: CIFAR100, CIFAR10, STL10, SVHN
+Shuffle strategy: shuff_all, shuff, rand, crand, cshuff, none
+Models: VGG16, ResNet50
+*The numbers in the following table are test accuracy in percent.
+=======================================================================
 
-## Results
+## TODO Lists
 
-### CIFAR
-Top1 error rate on the CIFAR-10/100 benchmarks are reported. You may get different results when training your models with different random seed.
-Note that the number of parameters are computed on the CIFAR-10 dataset.
+### TODO from Max Losch:
+generalization, training curves, dropout, transfer learning, robustness, deconv, activation maximization 
 
-| Model                     | Params (M)         |  CIFAR-10 (%)      | CIFAR-100 (%)      |
-| -------------------       | ------------------ | ------------------ | ------------------ |
-| alexnet                   | 2.47               | 22.78              | 56.13              |
-| vgg19_bn                  | 20.04              | 6.66               | 28.05              |
-| ResNet-110                | 1.70               | 6.11               | 28.86              |
-| PreResNet-110             | 1.70               | 4.94               | 23.65              |
-| WRN-28-10 (drop 0.3)      | 36.48              | 3.79               | 18.14              |
-| ResNeXt-29, 8x64          | 34.43              | 3.69               | 17.38              |
-| ResNeXt-29, 16x64         | 68.16              | 3.53               | 17.30              |
-| DenseNet-BC (L=100, k=12) | 0.77               | 4.54               | 22.88              |
-| DenseNet-BC (L=190, k=40) | 25.62              | 3.32               | 17.17              |
+searching keyword: permutation
 
+paper: On the robustness of convolutional neural networks to internal architecture and weight perturbation; Understanding deep learning requires rethinking generalization; Rethinking generalization requires revisiting old ideas: statistical mechanics approaches and complex learning behavior
 
-![cifar](utils/images/cifar.png)
+### TODO from FAN YUE:
+check if the effective capacity of shuff_nets is sufficient for memorizing the entire data set by Randomization tests.
 
-### ImageNet
-Single-crop (224x224) validation error rate is reported. 
+- if shuff is really a regularizer?
+- how many layers should be shuffled or 1D?
+- does the shuffled net have enough effective capacity to fit Randomized label or noisy images? i.e. how much capacity does shuff remove from the model?
+- does the order of channels the only way to encode info or the main way? how many different ways are there for NNs to encode info? Justify.
+- anaylize a small MLP to demonstrate the enormous capacity is from factorial
+- design experiments or quantity to measure the effective capacity of S and C
+- relation to over- / underfitting.
+- the ability of fitting in terms of number of classes
 
+### TODO from Yongqing: 
+fix initial, test without shuff, conv with few fc, randomize the weights and only train the fc
+paper keywords: permutation invariant mnist--Lecunn
 
-| Model                | Params (M)         |  Top-1 Error (%)   | Top-5 Error  (%)   |
-| -------------------  | ------------------ | ------------------ | ------------------ |
-| ResNet-18            | 11.69              |  30.09             | 10.78              |
-| ResNeXt-50 (32x4d)   | 25.03              |  22.6              | 6.29               |
+### TODO from Marius: 
+The Limitations of Adversarial Training and the Blind-Spot Attack - specify 10 test imgs, train 100 plain models, draw the bar-graph for each test img; train 100 badly shuffled (low test acc) models, draw the bar-graph; train 100 well shuffled (high test acc) models, draw the bar-graph
 
-![Validation curve](utils/images/imagenet.png)
-
-## Pretrained models
-Our trained models and training logs are downloadable at [OneDrive](https://mycuhk-my.sharepoint.com/personal/1155056070_link_cuhk_edu_hk/_layouts/15/guestaccess.aspx?folderid=0a380d1fece1443f0a2831b761df31905&authkey=Ac5yBC-FSE4oUJZ2Lsx7I5c).
-
-## Supported Architectures
-
-### CIFAR-10 / CIFAR-100
-Since the size of images in CIFAR dataset is `32x32`, popular network structures for ImageNet need some modifications to adapt this input size. The modified models is in the package `models.cifar`:
-- [x] [AlexNet](https://arxiv.org/abs/1404.5997)
-- [x] [VGG](https://arxiv.org/abs/1409.1556) (Imported from [pytorch-cifar](https://github.com/kuangliu/pytorch-cifar))
-- [x] [ResNet](https://arxiv.org/abs/1512.03385)
-- [x] [Pre-act-ResNet](https://arxiv.org/abs/1603.05027)
-- [x] [ResNeXt](https://arxiv.org/abs/1611.05431) (Imported from [ResNeXt.pytorch](https://github.com/prlz77/ResNeXt.pytorch))
-- [x] [Wide Residual Networks](http://arxiv.org/abs/1605.07146) (Imported from [WideResNet-pytorch](https://github.com/xternalz/WideResNet-pytorch))
-- [x] [DenseNet](https://arxiv.org/abs/1608.06993)
-
-### ImageNet
-- [x] All models in `torchvision.models` (alexnet, vgg, resnet, densenet, inception_v3, squeezenet)
-- [x] [ResNeXt](https://arxiv.org/abs/1611.05431)
-- [ ] [Wide Residual Networks](http://arxiv.org/abs/1605.07146)
-
-
-## Contribute
-Feel free to create a pull request if you find any bugs or you want to contribute (e.g., more datasets and more network structures).
