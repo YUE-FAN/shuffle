@@ -9,7 +9,6 @@ Dataset: CIFAR100, CIFAR10, STL10, SVHN
 Shuffle strategy: shuff_all, shuff, rand, crand, cshuff, none
 Models: VGG16, ResNet50
 *The numbers in the following table are test accuracy in percent.
-=======================================================================
 
 ## TODO Lists
 
