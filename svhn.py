@@ -13,7 +13,6 @@ TODO: 3. try different config of the channels    4. change the order of ReLU and
 TODO: 5. try sa and ca and dconv                 6. try add more linear layers
 TODO: 7. try different initialization methods    8. try AdamOptimizer
 """
-
 from __future__ import print_function
 
 import argparse
@@ -43,8 +42,8 @@ model_names = sorted(name for name in models.__dict__
 
 parser = argparse.ArgumentParser(description='PyTorch SVHN Training')
 # Datasets
-parser.add_argument('-d', '--dataset', default='svhn', type=str)
-parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+parser.add_argument('-d', '--dataset', default='cifar10', type=str)
+parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 # Optimization options
 parser.add_argument('--epochs', default=300, type=int, metavar='N',
@@ -53,9 +52,9 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('--train-batch', default=128, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--test-batch', default=50, type=int, metavar='N',
+parser.add_argument('--test-batch', default=100, type=int, metavar='N',
                     help='test batchsize')
-parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')
@@ -106,10 +105,11 @@ use_cuda = torch.cuda.is_available()
 if args.manualSeed is None:
     args.manualSeed = random.randint(1, 10000)
 random.seed(args.manualSeed)
+np.random.seed(args.manualSeed)
 torch.manual_seed(args.manualSeed)
 if use_cuda:
     torch.cuda.manual_seed_all(args.manualSeed)
-
+    torch.backends.cudnn.deterministic = True
 best_acc = 0  # best test accuracy
 
 
@@ -120,27 +120,30 @@ def main():
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)
 
+
+
     # Data
     print('==> Preparing dataset %s' % args.dataset)
     transform_train = transforms.Compose([
-        # transforms.RandomResizedCrop(96),  # with p = 1
+        # transforms.RandomCrop(32, padding=4),  # with p = 1
         # transforms.RandomHorizontalFlip(),  # with p = 0.5
         transforms.ToTensor(),  # it must be this guy that makes it CHW again
-        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
-
     dataloader = datasets.SVHN
     num_classes = 10
 
-    trainset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='train', download=True, transform=transform_train)
+    trainset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='train', download=True,
+                          transform=transform_train)
     trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)
 
-    testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='test', download=True, transform=transform_test)
+    testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='test', download=True,
+                         transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
 
     # Model
@@ -186,7 +189,7 @@ def main():
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
-            is_shuff=args.shuff
+            is_shuff=False
         )
     elif args.arch.endswith('vgg16'):
         model = models.__dict__[args.arch](
@@ -208,13 +211,13 @@ def main():
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
-            is_shuff=args.shuff
+            is_shuff=False
         )
     else:
         model = models.__dict__[args.arch](num_classes=num_classes)
 
     model = torch.nn.DataParallel(model).cuda()
-    cudnn.benchmark = True
+    cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
 
     # for name, param in model.named_parameters():
@@ -226,7 +229,7 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    # optimizer = optim.Adam(model.parameters(), lr=0.0001, weight_decay=args.weight_decay)
+    # optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=args.weight_decay)
 
     # Resume
     title = 'svhn-' + args.arch
@@ -310,9 +313,9 @@ def train(trainloader, model, criterion, optimizer, epoch, use_cuda):
 
         # measure accuracy and record loss
         prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
-        losses.update(loss.data[0], inputs.size(0))
-        top1.update(prec1[0], inputs.size(0))
-        top5.update(prec5[0], inputs.size(0))
+        losses.update(loss.data.item(), inputs.size(0))
+        top1.update(prec1.item(), inputs.size(0))
+        top5.update(prec5.item(), inputs.size(0))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -351,116 +354,45 @@ def test(testloader, model, criterion, epoch, use_cuda):
 
     # switch to evaluate mode
     model.eval()
-
-    end = time.time()
-    bar = Bar('Processing', max=len(testloader))
-    for batch_idx, (inputs, targets) in enumerate(testloader):
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        inputs, targets = torch.autograd.Variable(inputs, volatile=True), torch.autograd.Variable(targets)
-
-        # compute output
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-
-        # measure accuracy and record loss
-        prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
-        losses.update(loss.data[0], inputs.size(0))
-        top1.update(prec1[0], inputs.size(0))
-        top5.update(prec5[0], inputs.size(0))
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
+    with torch.no_grad():
         end = time.time()
-        # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
-                    batch=batch_idx + 1,
-                    size=len(testloader),
-                    data=data_time.avg,
-                    bt=batch_time.avg,
-                    total=bar.elapsed_td,
-                    eta=bar.eta_td,
-                    loss=losses.avg,
-                    top1=top1.avg,
-                    top5=top5.avg,
-                    )
-        bar.next()
-    bar.finish()
+        bar = Bar('Processing', max=len(testloader))
+        for batch_idx, (inputs, targets) in enumerate(testloader):
+            # measure data loading time
+            data_time.update(time.time() - end)
 
-    return (losses.avg, top1.avg)
+            if use_cuda:
+                inputs, targets = inputs.cuda(), targets.cuda()
+            inputs, targets = torch.autograd.Variable(inputs), torch.autograd.Variable(targets)
 
+            # compute output
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
 
-def test_drop(testloader, model, criterion, epoch, use_cuda):
-    # this function is for random delete and selective delete, it can produce the test acc for each class
-    global best_acc
+            # measure accuracy and record loss
+            prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
+            losses.update(loss.data.item(), inputs.size(0))
+            top1.update(prec1.item(), inputs.size(0))
+            top5.update(prec5.item(), inputs.size(0))
 
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
+            # measure elapsed time
+            batch_time.update(time.time() - end)
+            end = time.time()
 
-    # switch to evaluate mode
-    model.eval()
-
-    end = time.time()
-    # bar = Bar('Processing', max=len(testloader))
-    class_top1 = np.zeros((10, ))
-    for batch_idx, (inputs, targets) in enumerate(testloader):
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        inputs, targets = torch.autograd.Variable(inputs, volatile=True), torch.autograd.Variable(targets)
-
-        # compute output
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-
-        _, pred = outputs.data.topk(1, 1, True, True)
-        pred = pred.t()
-        gt = targets.data.view(1, -1).expand_as(pred)
-        correct = pred.eq(gt)
-
-        for i in range(10):
-            class_correct = correct[gt == i]
-            # print(class_correct)
-            # print(class_correct.size())
-            if class_correct.size(0) == 0:
-                continue
-            class_top1[i] += class_correct.view(-1).float().sum(0)
-
-
-        # measure accuracy and record loss
-        # prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
-        losses.update(loss.data[0], inputs.size(0))
-        # top1.update(prec1[0], inputs.size(0))
-        # top5.update(prec5[0], inputs.size(0))
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-    print(class_top1 / 800)
-    print(np.sum(class_top1)/8000)
-        # plot progress
-    #     bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
-    #                 batch=batch_idx + 1,
-    #                 size=len(testloader),
-    #                 data=data_time.avg,
-    #                 bt=batch_time.avg,
-    #                 total=bar.elapsed_td,
-    #                 eta=bar.eta_td,
-    #                 loss=losses.avg,
-    #                 top1=top1.avg,
-    #                 top5=top5.avg,
-    #                 )
-    #     bar.next()
-    # bar.finish()
-
+            # plot progress
+            bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
+                        batch=batch_idx + 1,
+                        size=len(testloader),
+                        data=data_time.avg,
+                        bt=batch_time.avg,
+                        total=bar.elapsed_td,
+                        eta=bar.eta_td,
+                        loss=losses.avg,
+                        top1=top1.avg,
+                        top5=top5.avg,
+                        )
+            bar.next()
+        bar.finish()
     return (losses.avg, top1.avg)
 
 

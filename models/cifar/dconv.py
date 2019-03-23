@@ -303,7 +303,6 @@ class Dconv_shuffle(nn.Module):
             a = torch.randperm(x_shape[2] * x_shape[3]) + i * x_shape[2] * x_shape[3]
             perm = torch.cat((perm, a.float()), 0)
         x_offset[:, :, :, :] = x[:, perm.long()].view(x_shape[0], x_shape[1], x_shape[2], x_shape[3])
-
         return self.dilated_conv(x_offset)
 
 

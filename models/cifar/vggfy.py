@@ -59,12 +59,12 @@ class CONV1D_3x3(nn.Module):
     def __init__(self, inplanes, outplanes, bias=False):
         super(CONV1D_3x3, self).__init__()
         self.conv1d = nn.Linear(inplanes, outplanes, bias=bias)
-        # self.bn = nn.BatchNorm1d(outplanes)
+        self.bn = nn.BatchNorm1d(outplanes)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv1d(x)
-        # x = self.bn(x)
+        x = self.bn(x)
         x = self.relu(x)
         return x
 
@@ -149,14 +149,14 @@ class DCONV_3x3(nn.Module):
         # else:
         #     raise Exception('The type of the dconv does not exit')
         self.dconv = Dconv_shuffle(inplanes, outplanes, kernelsize, stride, padding)
-        # self.bn = nn.BatchNorm2d(outplanes)
+        self.bn = nn.BatchNorm2d(outplanes)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         # np.save('/nethome/yuefan/fanyue/dconv/weight52.npy', self.dconv.dilated_conv.weight.detach().cpu().numpy())
         # np.save('/nethome/yuefan/fanyue/dconv/x53.npy', x.detach().cpu().numpy())
         x = self.dconv(x)
-        # x = self.bn(x)
+        x = self.bn(x)
         x = self.relu(x)
         return x
 
@@ -481,11 +481,13 @@ class VGG16_1d(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                raise Exception('You are using a model without BN!!!')
-                # nn.init.constant_(m.weight, 1)
-                # nn.init.constant_(m.bias, 0)
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm1d):
-                raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+                # raise Exception('You are using a model without BN!!!')
 
     def forward(self, x):
         # print('input size:', input_x.size())
@@ -798,6 +800,111 @@ class VGG16_Transpose(nn.Module):  # TODO: try different config of the channels
             # TODO: why there is no dropout
             x = self.fc(x)
         return x
+
+
+class VGG16_WHR(nn.Module):  # TODO: try different config of the channels
+    def __init__(self, dropout_rate, num_classes, include_top, type='none'):
+        """
+        This is VGG16 PCB version
+        :param type: this is only for shuffle experiments, remember to get rid of it afterwards!
+        :param layer: int, if the conv number is smaller than the layer, normal conv is used; otherwise dconv
+        """
+        super(VGG16_WHR, self).__init__()
+        print("CIFAR VGG16_WHR is used")
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.num_features = 512
+
+        # Define the building blocks
+        self.conv11 = CONV_3x3(3, 64, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv12 = CONV_3x3(64, 64, kernelsize=3, stride=2, padding='same', bias=False)
+
+        self.conv21 = CONV_3x3(64, 128, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv22 = CONV_3x3(128, 128, kernelsize=3, stride=2, padding='same', bias=False)
+
+        self.conv31 = CONV_3x3(128, 256, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv32 = CONV_3x3(256, 256, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv33 = CONV_3x3(256, 256, kernelsize=3, stride=2, padding='same', bias=False)
+
+        self.conv41 = CONV_3x3(256, 512, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv42 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv43 = CONV_3x3(512, 512, kernelsize=3, stride=2, padding='same', bias=False)
+
+        self.conv51 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv52 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=False)
+        self.conv53 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=False)
+        # =======================================top=============================================
+        self.instance0 = nn.Linear(self.num_features, self.num_classes)
+        self.instance1 = nn.Linear(self.num_features, self.num_classes)
+        self.instance2 = nn.Linear(self.num_features, self.num_classes)
+        self.instance3 = nn.Linear(self.num_features, self.num_classes)
+        self.instance4 = nn.Linear(self.num_features, self.num_classes)
+        # self.linear_list = []
+        # for i in range(16):
+        #     self.linear_list.append(nn.Linear(self.num_features, self.num_classes).cuda())
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+
+        x = self.conv11(x)
+        x = self.conv12(x)
+
+        x = self.conv21(x)
+        x = self.conv22(x)
+
+        x = self.conv31(x)
+        x = self.conv32(x)
+        x = self.conv33(x)
+
+        x = self.conv41(x)
+        x = self.conv42(x)
+        x = self.conv43(x)
+
+        x = self.conv51(x)
+        x = self.conv52(x)
+        x = self.conv53(x)
+
+        sx = x.size(2) / 2
+        x = nn.functional.avg_pool2d(x, kernel_size=(sx, x.size(3)), stride=(sx, x.size(3)))  # 4x1
+
+        x4 = nn.functional.avg_pool2d(x, kernel_size=(2, 1), stride=(1, 1))
+        x4 = x4.contiguous().view(x4.size(0), -1)
+        c4 = self.instance4(x4)
+
+        # x = x.view(x.size(0), x.size(1), 16)
+        # c_list = []
+        # for i in range(16):
+        #     x_offset = torch.empty(x.size(0), 512).cuda(0)
+        #     # print(x_offset[:, :, :].size(), x[:, :, i].size())
+        #     x_offset[:, :] = x[:, :, i]
+        #     tmp = self.linear_list[i](x_offset)
+        #     c_list.append(tmp)
+
+        x = x.chunk(2, dim=2)
+        x0 = x[0].contiguous().view(x[0].size(0), -1)
+        x1 = x[1].contiguous().view(x[1].size(0), -1)
+        c0 = self.instance0(x0)
+        c1 = self.instance1(x1)
+        return c0, c1, c4#c_list, c4#
+
+
+def vggwhr(**kwargs):
+    """
+    Constructs a ResnetWHR model.
+    """
+    return VGG16_WHR(**kwargs)
 
 
 def vgg19(**kwargs):

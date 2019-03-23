@@ -67,25 +67,6 @@
 
 
 # import numpy as np
-# a = np.load('/nethome/yuefan/fanyue/dconv/x.npy')
-# print(a.shape)
-# a = a.reshape(128, 512, 4, 4)
-# # print(np.sum(a[4,:,:], 1))
-# a = a.reshape(-1)
-#
-# b = []
-# for i in range(len(a)):
-#     if a[i] != 0:
-#         b.append(a[i])
-# print(len(b) / len(a))
-#
-# import matplotlib.pyplot as plt
-#
-# plt.hist(b, bins='auto')  # arguments are passed to np.histogram
-# plt.title("Histogram with 'auto' bins")
-# plt.show()
-
-# import numpy as np
 # from PIL import Image
 # a = np.load('/nethome/yuefan/fanyue/dconv/fm3x3.npy')  # img, fm3x3, fmbottel4
 # print(a.shape)
@@ -128,54 +109,68 @@
 #
 # print(o.size())
 
+# How to freeze layers
+# for param in model.parameters():
+#     if list(param.size()) == [10, 512] or list(param.size()) == [10]:
+#         print(param.size())
+#         param.requires_grad = True
+#     else:
+#         param.requires_grad = False
+#
+# model = torch.nn.DataParallel(model).cuda()
+# cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
+# print('    Total params: %.2fM' % (
+#             sum(p.numel() for p in filter(lambda p: p.requires_grad, model.parameters())) / 1000000.0))
 import numpy as np
+
+
+def loader(dataset, model_type, is_train):
+    model_nums = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
+    mm = []
+    for model_num in model_nums:
+        saved_path = '/data/users/yuefan/fanyue/dconv/maruis_conjecture/' + dataset + '/' + model_type + '_' + str(
+            model_num) + '/'
+        if is_train:
+            D = np.load(saved_path + 'train_img_manidist_D.npy')
+        else:
+            D = np.load(saved_path + 'test_img_manidist_D.npy')
+        D = np.sqrt(D)
+        tmp = D.mean(axis=1)
+        mm.append(tmp)
+    mm = np.array(mm)
+    return np.mean(mm, axis=0)
+
+
+dataset = 'cifar100'
+
+model_type = 'resnet50'
+train_ref = loader(dataset, model_type, True)
+model_type = 'resnet501d_good_3042'
+train_good = loader(dataset, model_type, True)
+model_type = 'resnet50_shuffle_good_3342'
+train_shuffle_good = loader(dataset, model_type, True)
+model_type = 'resnet501d_bad_1142'
+train_bad = loader(dataset, model_type, True)
+
+model_type = 'resnet50'
+test_ref = loader(dataset, model_type, False)
+model_type = 'resnet501d_good_3042'
+test_good = loader(dataset, model_type, False)
+model_type = 'resnet50_shuffle_good_3342'
+test_shuffle_good = loader(dataset, model_type, False)
+model_type = 'resnet501d_bad_1142'
+test_bad = loader(dataset, model_type, False)
+
+# print(np.sum(shuffle_good>ref))
 import matplotlib.pyplot as plt
 
-x = range(13)
-r100 = np.ones(shape=(13,)) * 30.82
-r10 = np.ones(shape=(13,)) * 74.47
-a10 =[
-
-10.00 ,
-10.00 ,
-10.00 ,
-10.00 ,
-10.00 ,
-48.45 ,
-78.77 ,
-72.59 ,
-76.85 ,
-77.20 ,
-74.32 ,
-73.49 ,
-75.84
-
-
-]
-a100=[
-
-1.00 ,
-1.00 ,
-1.00 ,
-1.00 ,
-1.00 ,
-1.00 ,
-4.15 ,
-28.82 ,
-21.40 ,
-31.46 ,
-28.91 ,
-30.08 ,
-29.53
-]
-
-plt.plot(x,r100, label="CIFAR100 stand")
-plt.plot(x,a100, label="CIFAR100 1D")
-plt.plot(x,r10, label="CIFAR10 stand")
-plt.plot(x,a10, label="CIFAR10 1D")
-plt.legend(loc='lower right')
-plt.title("VGG16 1D w/o BN")
-plt.xlabel("number of standard layers")
-plt.ylabel("test acc")
-
+# plt.hist(good, bins='auto')  # arguments are passed to np.histogram
+# plt.title("Histogram with 'auto' bins")
+# plt.show()
+# plt.hist(test_ref, bins='auto', alpha=0.5, label='test ref')
+plt.hist(test_shuffle_good, bins='auto', alpha=0.5, label='test shuffle good')
+plt.hist(test_good, bins='auto', alpha=0.5, label='test 1D good')
+plt.legend(loc='upper right')
+plt.xlabel('distance')
 plt.show()
+

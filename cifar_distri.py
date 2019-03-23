@@ -1,7 +1,6 @@
-'''
-Training script for CIFAR-10/100
-Copyright (c) Wei YANG, 2017
-'''
+"""
+This code should be run with fastai env!!!
+"""
 from __future__ import print_function
 
 import argparse

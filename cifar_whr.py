@@ -1,7 +1,7 @@
-'''
-Training script for CIFAR-10/100
-Copyright (c) Wei YANG, 2017
-'''
+"""
+This script is used for PCB Experiments (train for 80 epochs, lr decayed once at 50)
+"""
+
 from __future__ import print_function
 
 import argparse
@@ -9,7 +9,6 @@ import os
 import shutil
 import time
 import random
-import numpy as np
 
 import torch
 import torch.nn as nn
@@ -32,7 +31,7 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10/100 Training')
 # Datasets
 parser.add_argument('-d', '--dataset', default='cifar10', type=str)
-parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 # Optimization options
 parser.add_argument('--epochs', default=300, type=int, metavar='N',
@@ -94,11 +93,10 @@ use_cuda = torch.cuda.is_available()
 if args.manualSeed is None:
     args.manualSeed = random.randint(1, 10000)
 random.seed(args.manualSeed)
-np.random.seed(args.manualSeed)
 torch.manual_seed(args.manualSeed)
 if use_cuda:
     torch.cuda.manual_seed_all(args.manualSeed)
-    torch.backends.cudnn.deterministic = True
+
 best_acc = 0  # best test accuracy
 
 
@@ -109,13 +107,11 @@ def main():
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)
 
-
-
     # Data
     print('==> Preparing dataset %s' % args.dataset)
     transform_train = transforms.Compose([
-        # transforms.RandomCrop(32, padding=4),  # with p = 1
-        # transforms.RandomHorizontalFlip(),  # with p = 0.5
+        transforms.RandomCrop(32, padding=4),  # with p = 1
+        transforms.RandomHorizontalFlip(),  # with p = 0.5
         transforms.ToTensor(),  # it must be this guy that makes it CHW again
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
@@ -140,84 +136,24 @@ def main():
 
     # Model
     print("==> creating model '{}'".format(args.arch))
-    if args.arch.startswith('resnext'):
-        model = models.__dict__[args.arch](
-                    cardinality=args.cardinality,
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('densenet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    growthRate=args.growthRate,
-                    compressionRate=args.compressionRate,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('wrn'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.endswith('resnet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                )
-    elif args.arch.startswith('resnet50'):
+    if args.arch.startswith('resnetwhr'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     include_top=True,
-                    dropout_rate=0,
-                    layer=args.layer
+                    dropout_rate=0
                 )
-    elif args.arch.startswith('d1_resnet50'):
-        model = models.__dict__[args.arch](
-            num_classes=num_classes,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer,
-            is_shuff=False  # TODO: check
-        )
-    elif args.arch.endswith('vgg16'):
+    elif args.arch.endswith('vggwhr'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     include_top=True,
-                    dropout_rate=0,
-                    layer=args.layer
+                    dropout_rate=0
                 )
-    elif args.arch.endswith('vgg16_sa'):
-        model = models.__dict__[args.arch](
-            num_classes=num_classes,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
-    elif args.arch.endswith('vgg16_1d'):
-        model = models.__dict__[args.arch](
-            num_classes=num_classes,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer,
-            is_shuff=False
-        )
     else:
-        model = models.__dict__[args.arch](num_classes=num_classes)
+        raise Exception('This script has to use resnetwhr as the model!!!')
 
     model = torch.nn.DataParallel(model).cuda()
-    cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
+    cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
-
-    # for name, param in model.named_parameters():
-    #     print(name)
-    # for name in model.named_modules():
-    #     print(name)
-    # for param in model.parameters():
-    #     print(param)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -301,10 +237,26 @@ def train(trainloader, model, criterion, optimizer, epoch, use_cuda):
 
         # compute output
         outputs = model(inputs)
-        loss = criterion(outputs, targets)
+
+        # loss = criterion(outputs[1], targets)
+        # for i in range(16):
+        #     loss += criterion(outputs[0][i], targets)
+        # loss = loss / 17.
+
+        loss0 = criterion(outputs[0], targets)
+        loss1 = criterion(outputs[1], targets)
+        loss2 = criterion(outputs[2], targets)
+        # loss3 = criterion(outputs[3], targets)
+        # loss4 = criterion(outputs[4], targets)
+        # loss5 = criterion(outputs[5], targets)
+        # loss6 = criterion(outputs[6], targets)
+        # loss7 = criterion(outputs[7], targets)
+
+        loss = loss0 + loss1 + loss2 / 3.
+        # loss = loss0 + loss1 + loss2 + loss3 + loss4 / 5.  # TODO: check!
 
         # measure accuracy and record loss
-        prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
+        prec1, prec5 = accuracy(outputs[-1].data, targets.data, topk=(1, 5))  # TODO: check!
         losses.update(loss.data.item(), inputs.size(0))
         top1.update(prec1.item(), inputs.size(0))
         top5.update(prec5.item(), inputs.size(0))
@@ -359,6 +311,7 @@ def test(testloader, model, criterion, epoch, use_cuda):
 
             # compute output
             outputs = model(inputs)
+            outputs = outputs[-1]  # TODO: check!
             loss = criterion(outputs, targets)
 
             # measure accuracy and record loss

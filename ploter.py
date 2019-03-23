@@ -1,39 +1,113 @@
 """
-This code analyzes the Linear Model trained on MNIST which achieves 92.69% test acc and 93.27% train acc
+This code draws the plot between nubmer of standard layers and test acc in the google doc file (experimental results)
 """
 import numpy as np
-from PIL import Image
+namelist = ['11', '12', '21', '22', '31', '32', '33', '41', '42', '43', '51', '52', '53']
+# namelist = ['00', '10', '11', '12', '20', '21', '22', '23', '30', '31','32', '33', '34', '35', '40', '41', '42']
+a10 = []
+a100 = []
+asvhn = []
+for i in range(len(namelist)):
+    path = '/data/users/yuefan/fanyue/dconv/checkpoints/cifar10/dconv_shuffle_vgg16_' + namelist[i] + '53_winu_60/log.txt'
+    large = 0.
+    core = 0.
+    with open(path, 'r') as f:
+        for line in f.readlines()[1:]:
+            a = line.split('\t')
+            if float(a[4]) > large:
+                large = float(a[4])
+                core = float(a[3])
+        large = np.around(large, decimals=2)
+        a10.append(large)
+        # core = np.around(core, decimals=2)
+        # print(large, '/',core)
+
+for i in range(len(namelist)):
+    path = '/data/users/yuefan/fanyue/dconv/checkpoints/cifar100/dconv_shuffle_vgg16_' + namelist[i] + '53_winu_60/log.txt'
+    large = 0.
+    core = 0.
+    with open(path, 'r') as f:
+        for line in f.readlines()[1:]:
+            a = line.split('\t')
+            if float(a[4]) > large:
+                large = float(a[4])
+                core = float(a[3])
+        large = np.around(large, decimals=2)
+        a100.append(large)
+        # core = np.around(core, decimals=2)
+        # print(large, '/',core)
+for i in range(len(namelist)):
+    path = '/data/users/yuefan/fanyue/dconv/checkpoints/svhn/dconv_shuffle_vgg16_' + namelist[i] + '53_winu_60/log.txt'
+    large = 0.
+    core = 0.
+    with open(path, 'r') as f:
+        for line in f.readlines()[1:]:
+            a = line.split('\t')
+            if float(a[4]) > large:
+                large = float(a[4])
+                core = float(a[3])
+        large = np.around(large, decimals=2)
+        asvhn.append(large)
+        # core = np.around(core, decimals=2)
+        # print(large, '/',core)
+
 import matplotlib.pyplot as plt
-w = np.load('/nethome/yuefan/fanyue/dconv/mnist/l_w.npy')
-num = 9
-img = np.load('/nethome/yuefan/fanyue/dconv/mnist/img'+str(num)+'.npy')
-print(np.max(img), np.min(img))
-# import matplotlib.pyplot as plt
-# plt.hist(w.reshape(-1,), bins='auto')
-# plt.show()
-# for i in range(10):
-#     y = np.sum(w[i, 0, :, :] * img)
-#     print(y)
-w0 = w[num, 0, :, :].reshape(28, 28)
-for i in range(28):
-    for j in range(28):
-        if w0[i,j]>-0.15 and w0[i,j]<0.15:
-            w0[i,j] = 0
-print(np.max(w0), np.min(w0))
-#
-w0 = w0 - np.min(w0)
-w0 = w0 / np.max(w0)
-# print(w0)
-print(np.max(w0), np.min(w0))
-plt.figure(1)
-plt.subplot(211)
-plt.imshow(img, cmap='hot', interpolation='nearest')
-plt.subplot(212)
-plt.imshow(w0, cmap='hot', interpolation='nearest')
+
+x = range(13)
+r100 = np.ones(shape=(13,)) * 49.73
+r10 = np.ones(shape=(13,)) * 83.49
+svhn = np.ones(shape=(13,)) * 94.86
+
+plt.plot(x,r100, label="CIFAR100 stand")
+plt.plot(x,a100, label="CIFAR100 shuffle")
+plt.plot(x,r10, label="CIFAR10 stand")
+plt.plot(x,a10, label="CIFAR10 shuffle")
+plt.plot(x,svhn, label="SVHN stand")
+plt.plot(x,asvhn, label="SVHN shuffle")
+plt.legend(loc='lower right')
+plt.title("VGG16 for Shuffle")
+plt.xlabel("number of standard layers")
+plt.ylabel("test acc")
+
 plt.show()
-# Image.fromarray(np.hstack(( np.uint8(w0*255), np.uint8(img*255) ))).show()
-# im = Image.fromarray(np.uint8(w0*255))
-# im.show()
+
+# TODO:################################################################################################################
+"""
+This code analyzes the Linear Model trained on MNIST which achieves 92.69% test acc and 93.27% train acc
+"""
+# import numpy as np
+# from PIL import Image
+# import matplotlib.pyplot as plt
+# w = np.load('/nethome/yuefan/fanyue/dconv/mnist/l_w.npy')
+# num = 9
+# img = np.load('/nethome/yuefan/fanyue/dconv/mnist/img'+str(num)+'.npy')
+# print(np.max(img), np.min(img))
+# # import matplotlib.pyplot as plt
+# # plt.hist(w.reshape(-1,), bins='auto')
+# # plt.show()
+# # for i in range(10):
+# #     y = np.sum(w[i, 0, :, :] * img)
+# #     print(y)
+# w0 = w[num, 0, :, :].reshape(28, 28)
+# for i in range(28):
+#     for j in range(28):
+#         if w0[i,j]>-0.15 and w0[i,j]<0.15:
+#             w0[i,j] = 0
+# print(np.max(w0), np.min(w0))
+# #
+# w0 = w0 - np.min(w0)
+# w0 = w0 / np.max(w0)
+# # print(w0)
+# print(np.max(w0), np.min(w0))
+# plt.figure(1)
+# plt.subplot(211)
+# plt.imshow(img, cmap='hot', interpolation='nearest')
+# plt.subplot(212)
+# plt.imshow(w0, cmap='hot', interpolation='nearest')
+# plt.show()
+# # Image.fromarray(np.hstack(( np.uint8(w0*255), np.uint8(img*255) ))).show()
+# # im = Image.fromarray(np.uint8(w0*255))
+# # im.show()
 # TODO:################################################################################################################
 """
 This code can plot the histogram of cos similarities among all activations on the last feature map

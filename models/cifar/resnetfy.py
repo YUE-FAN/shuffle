@@ -10,26 +10,26 @@ class identity_block_1D(nn.Module):
         super(identity_block_1D, self).__init__()
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(plane1)
+        self.bn1 = nn.BatchNorm2d(plane1)
         self.conv2 = nn.Linear(plane1, plane2, bias=False)
-        # self.bn2 = nn.BatchNorm1d(plane2)
+        self.bn2 = nn.BatchNorm1d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn3 = nn.BatchNorm2d(plane3)
+        self.bn3 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, input_tensor):
         out = self.conv1(input_tensor)
-        # out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
         out = out.view(out.size(0), -1)
         out = self.conv2(out)
-        # out = self.bn2(out)
+        out = self.bn2(out)
         out = self.relu(out)
 
         out = out.view(out.size(0), out.size(1), 1, 1)
         out = self.conv3(out)
-        # out = self.bn3(out)
+        out = self.bn3(out)
 
         out += input_tensor
         out = self.relu(out)
@@ -41,31 +41,31 @@ class bottleneck_1D(nn.Module):
         super(bottleneck_1D, self).__init__()
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(plane1)
+        self.bn1 = nn.BatchNorm2d(plane1)
         self.conv2 = nn.Linear(plane1, plane2, bias=False)
-        # self.bn2 = nn.BatchNorm1d(plane2)
+        self.bn2 = nn.BatchNorm1d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn3 = nn.BatchNorm2d(plane3)
+        self.bn3 = nn.BatchNorm2d(plane3)
         self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn4 = nn.BatchNorm2d(plane3)
+        self.bn4 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, input_tensor):
         out = self.conv1(input_tensor)
-        # out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
         out = out.view(out.size(0), -1)
         out = self.conv2(out)
-        # out = self.bn2(out)
+        out = self.bn2(out)
         out = self.relu(out)
 
         out = out.view(out.size(0), out.size(1), 1, 1)
         out = self.conv3(out)
-        # out = self.bn3(out)
+        out = self.bn3(out)
 
         shortcut = self.conv4(input_tensor)
-        # shortcut = self.bn4(shortcut)
+        shortcut = self.bn4(shortcut)
 
         out += shortcut
         out = self.relu(out)
@@ -176,7 +176,7 @@ def ChannelAttn_whr(x):
 
 def conv_1_3x3():
     return nn.Sequential(nn.Conv2d(3, 16, kernel_size=3, stride=1, padding=1, bias=False),  # 'SAME'
-                         # nn.BatchNorm2d(16),
+                         nn.BatchNorm2d(16),
                          nn.ReLU(inplace=True))
                          # TODO: nn.MaxPool2d(kernel_size=3, stride=2, padding=0))  # 'valid'
 
@@ -197,33 +197,7 @@ def conv_1D():
                          # TODO: nn.MaxPool2d(kernel_size=3, stride=2, padding=0))  # 'valid'
 
 
-class identity_block3(nn.Module):
-    def __init__(self, inplanes, planes, kernel_size):
-        super(identity_block3, self).__init__()
-        plane1, plane2, plane3 = planes
-        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
-        # self.bn2 = nn.BatchNorm2d(plane2)
-        self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn3 = nn.BatchNorm2d(plane3)
-        self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, input_tensor):
-        out = self.conv1(input_tensor)
-        # out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        # out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        # out = self.bn3(out)
-
-        out += input_tensor
-        out = self.relu(out)
-        return out
 
 
 class CONV_3x3_skip(nn.Module):
@@ -255,12 +229,77 @@ class CONV_3x3_skip(nn.Module):
         return out  # none, 484, 11, 11
 
 
+class bottleneck_dconv(nn.Module):
+    def __init__(self, inplanes, planes, kernel_size, strides=(2, 2), type='error'):
+        super(bottleneck_dconv, self).__init__()
+        plane1, plane2, plane3 = planes
+
+        # if type=='none':
+        #     self.dconv1 = Dconv_none(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        #     self.dconv2 = Dconv_none(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        # elif type=='shuffleall':
+        #     self.dconv1 = Dconv_shuffleall(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        #     self.dconv2 = Dconv_shuffleall(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        # elif type=='shuffle':
+        #     self.dconv1 = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        #     self.dconv2 = Dconv_shuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        # elif type=='cshuffle':
+        #     self.dconv1 = Dconv_cshuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        #     self.dconv2 = Dconv_cshuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        # elif type=='rand':
+        #     self.dconv1 = Dconv_rand(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        #     self.dconv2 = Dconv_rand(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        # elif type=='crand':
+        #     self.dconv1 = Dconv_crand(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        #     self.dconv2 = Dconv_crand(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        # else:
+        #     raise Exception('The type of the dconv does not exit')
+
+        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(plane1)
+
+        # self.offset = DConv1Dai(plane1)
+        # self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
+        # self.dconv = Dconv_drop(8, 8, plane1, plane2)  # TODO: don't use hard code here
+        self.dconv1 = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(plane2)
+
+        self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(plane3)
+
+        # self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=strides, padding=0, bias=False)
+        self.dconv2 = Dconv_shuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        self.bn4 = nn.BatchNorm2d(plane3)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, input_tensor):
+        out = self.conv1(input_tensor)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        # out = self.offset(out)
+        # out = self.conv2(out)
+        out = self.dconv1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        shortcut = self.dconv2(input_tensor)
+        shortcut = self.bn4(shortcut)
+
+        out += shortcut
+        out = self.relu(out)
+        return out
+
+
 class identity_block3_dconv(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, type='error'):
         super(identity_block3_dconv, self).__init__()
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(plane1)
+        self.bn1 = nn.BatchNorm2d(plane1)
 
         # self.offset = DConv1Dai(plane1)
         # self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
@@ -280,25 +319,25 @@ class identity_block3_dconv(nn.Module):
         # else:
         #     raise Exception('The type of the dconv does not exit')
         self.dconv = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        # self.bn2 = nn.BatchNorm2d(plane2)
+        self.bn2 = nn.BatchNorm2d(plane2)
 
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn3 = nn.BatchNorm2d(plane3)
+        self.bn3 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, input_tensor):
         out = self.conv1(input_tensor)
-        # out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
         # out = self.offset(out)
         # out = self.conv2(out)
         out = self.dconv(out)
-        # out = self.bn2(out)
+        out = self.bn2(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        # out = self.bn3(out)
+        out = self.bn3(out)
 
         type = 'shuffle'  # TODO:!!!!!!!!!!!!!!
 
@@ -354,32 +393,61 @@ class bottleneck(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, strides=(2, 2)):
         super(bottleneck, self).__init__()
         plane1, plane2, plane3 = planes
-        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
-        # self.bn2 = nn.BatchNorm2d(plane2)
+        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(plane1)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=strides, padding=(kernel_size - 1) / 2, bias=False)
+        self.bn2 = nn.BatchNorm2d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn3 = nn.BatchNorm2d(plane3)
+        self.bn3 = nn.BatchNorm2d(plane3)
         self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=strides, padding=0, bias=False)
-        # self.bn4 = nn.BatchNorm2d(plane3)
+        self.bn4 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, input_tensor):
         out = self.conv1(input_tensor)
-        # out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        # out = self.bn2(out)
+        out = self.bn2(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        # out = self.bn3(out)
+        out = self.bn3(out)
 
         shortcut = self.conv4(input_tensor)
-        # shortcut = self.bn4(shortcut)
+        shortcut = self.bn4(shortcut)
 
         out += shortcut
+        out = self.relu(out)
+        return out
+
+
+class identity_block3(nn.Module):
+    def __init__(self, inplanes, planes, kernel_size):
+        super(identity_block3, self).__init__()
+        plane1, plane2, plane3 = planes
+        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(plane1)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
+        self.bn2 = nn.BatchNorm2d(plane2)
+        self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(plane3)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, input_tensor):
+        out = self.conv1(input_tensor)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.conv2(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        out += input_tensor
         out = self.relu(out)
         return out
 
@@ -418,69 +486,41 @@ class bottleneck_tr(nn.Module):
         return out
 
 
-class bottleneck_dconv(nn.Module):
-    def __init__(self, inplanes, planes, kernel_size, strides=(2, 2), type='error'):
-        super(bottleneck_dconv, self).__init__()
+class bottleneck_save(nn.Module):
+    def __init__(self, inplanes, planes, kernel_size, strides=(2, 2)):
+        super(bottleneck_save, self).__init__()
         plane1, plane2, plane3 = planes
-
-        # if type=='none':
-        #     self.dconv1 = Dconv_none(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        #     self.dconv2 = Dconv_none(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # elif type=='shuffleall':
-        #     self.dconv1 = Dconv_shuffleall(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        #     self.dconv2 = Dconv_shuffleall(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # elif type=='shuffle':
-        #     self.dconv1 = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        #     self.dconv2 = Dconv_shuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # elif type=='cshuffle':
-        #     self.dconv1 = Dconv_cshuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        #     self.dconv2 = Dconv_cshuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # elif type=='rand':
-        #     self.dconv1 = Dconv_rand(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        #     self.dconv2 = Dconv_rand(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # elif type=='crand':
-        #     self.dconv1 = Dconv_crand(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        #     self.dconv2 = Dconv_crand(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # else:
-        #     raise Exception('The type of the dconv does not exit')
-
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
-        # self.bn1 = nn.BatchNorm2d(plane1)
-
-        # self.offset = DConv1Dai(plane1)
-        # self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
-        # self.dconv = Dconv_drop(8, 8, plane1, plane2)  # TODO: don't use hard code here
-        self.dconv1 = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
-        # self.bn2 = nn.BatchNorm2d(plane2)
-
+        self.bn1 = nn.BatchNorm2d(plane1)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
+        self.bn2 = nn.BatchNorm2d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        # self.bn3 = nn.BatchNorm2d(plane3)
-
-        # self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=strides, padding=0, bias=False)
-        self.dconv2 = Dconv_shuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
-        # self.bn4 = nn.BatchNorm2d(plane3)
+        self.bn3 = nn.BatchNorm2d(plane3)
+        self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=strides, padding=0, bias=False)
+        self.bn4 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, input_tensor):
         out = self.conv1(input_tensor)
-        # out = self.bn1(out)
+        out = self.bn1(out)
         out = self.relu(out)
 
-        # out = self.offset(out)
-        # out = self.conv2(out)
-        out = self.dconv1(out)
-        # out = self.bn2(out)
+        out = self.conv2(out)
+        np.save('/nethome/yuefan/fanyue/dconv/weight.npy', self.conv2.weight.detach().cpu().numpy())
+        out = self.bn2(out)
         out = self.relu(out)
 
         out = self.conv3(out)
-        # out = self.bn3(out)
+        out = self.bn3(out)
 
-        shortcut = self.dconv2(input_tensor)
-        # shortcut = self.bn4(shortcut)
+        shortcut = self.conv4(input_tensor)
+        shortcut = self.bn4(shortcut)
 
         out += shortcut
         out = self.relu(out)
         return out
+
+
 # def basic_block(input_tensor, kernel_size, filters, stage, block, training, reuse, strides=(2, 2)):
 #     filters1, filters2 = filters
 #     conv_name_base = 'res' + str(stage) + block + '_branch'
@@ -527,41 +567,6 @@ class bottleneck_dconv(nn.Module):
 #     return x
 
 
-class bottleneck_save(nn.Module):
-    def __init__(self, inplanes, planes, kernel_size, strides=(2, 2)):
-        super(bottleneck_save, self).__init__()
-        plane1, plane2, plane3 = planes
-        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
-        self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
-        self.bn2 = nn.BatchNorm2d(plane2)
-        self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
-        self.bn3 = nn.BatchNorm2d(plane3)
-        self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=strides, padding=0, bias=False)
-        self.bn4 = nn.BatchNorm2d(plane3)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, input_tensor):
-        out = self.conv1(input_tensor)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        np.save('/nethome/yuefan/fanyue/dconv/weight.npy', self.conv2.weight.detach().cpu().numpy())
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        shortcut = self.conv4(input_tensor)
-        shortcut = self.bn4(shortcut)
-
-        out += shortcut
-        out = self.relu(out)
-        return out
-
-
 class Resnet50(nn.Module):
     def __init__(self, dropout_rate, num_classes, include_top, layer, type='none'):
         print('resnet50 is used')
@@ -571,7 +576,10 @@ class Resnet50(nn.Module):
         self.include_top = include_top
 
         # Define the building blocks
-        self.conv_3x3 = conv_1_3x3()  # TODO: check if you are using dconv3x3
+        if layer > 0:
+            self.conv_3x3 = conv_1_3x3()
+        else:
+            self.conv_3x3 = conv_1_3x3_dconv()
 
         if layer > 10:
             self.bottleneck_1 = bottleneck(16, [16, 16, 64], kernel_size=3, strides=(1, 1))
@@ -649,9 +657,9 @@ class Resnet50(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                raise Exception('You are using a model without BN!!!')
-                # nn.init.constant_(m.weight, 1)
-                # nn.init.constant_(m.bias, 0)
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, input_x):
         # print(input_x.size())
@@ -697,8 +705,10 @@ class Resnet50_1d(nn.Module):
         self.layer = layer
 
         # Define the building blocks
-        self.conv_3x3 = conv_1_3x3()  # TODO: check if you are using dconv3x3
-        # self.conv_3x3 = conv_1D()
+        if layer > 0:
+            self.conv_3x3 = conv_1_3x3()
+        else:
+            self.conv_3x3 = conv_1D()
 
         if is_shuff:
             identity = identity_block_1D_shuff
@@ -813,7 +823,7 @@ class Resnet50_1d(nn.Module):
         # # self.identity_block_4_2 = identity_block_1D(512, [128, 128, 512], kernel_size=3)
 
         # if layer == 11 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or
-        if layer == 10 or layer == 11 or layer == 12 or layer == 20:
+        if layer == 10 or layer == 11 or layer == 12 or layer == 20 or layer == 0:
             s = 32
         elif layer == 21 or layer == 22 or layer == 23 or layer == 30:
             s = 16
@@ -832,9 +842,17 @@ class Resnet50_1d(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
+        if self.layer == 0:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
         x = self.conv_3x3(x)
+        if self.layer == 0:
+            x = x.view(x.size(0), x.size(1), 1, 1)
         # np.save('/nethome/yuefan/fanyue/dconv/fm3x3.npy', x.detach().cpu().numpy())
         if self.layer == 10:
             x = self.avgpool(x)
@@ -1284,6 +1302,148 @@ class Resnet50_CASA(nn.Module):
         return x
 
 
+class ResnetWHR(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top):
+        """
+        This is ResNet50 for PCB verison
+        """
+        super(ResnetWHR, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.num_features = 512
+
+        # Define the building blocks
+        self.conv_3x3 = conv_1_3x3()
+
+        self.bottleneck_1 = bottleneck(16, [16, 16, 64], kernel_size=3, strides=(1, 1))
+        self.identity_block_1_1 = identity_block3(64, [16, 16, 64], kernel_size=3)
+        self.identity_block_1_2 = identity_block3(64, [16, 16, 64], kernel_size=3)
+
+        self.bottleneck_2 = bottleneck(64, [32, 32, 128], kernel_size=3, strides=(2, 2))
+        self.identity_block_2_1 = identity_block3(128, [32, 32, 128], kernel_size=3)
+        self.identity_block_2_2 = identity_block3(128, [32, 32, 128], kernel_size=3)
+        self.identity_block_2_3 = identity_block3(128, [32, 32, 128], kernel_size=3)
+
+        self.bottleneck_3 = bottleneck(128, [64, 64, 256], kernel_size=3, strides=(2, 2))
+        self.identity_block_3_1 = identity_block3(256, [64, 64, 256], kernel_size=3)
+        self.identity_block_3_2 = identity_block3(256, [64, 64, 256], kernel_size=3)
+        self.identity_block_3_3 = identity_block3(256, [64, 64, 256], kernel_size=3)
+        self.identity_block_3_4 = identity_block3(256, [64, 64, 256], kernel_size=3)
+        self.identity_block_3_5 = identity_block3(256, [64, 64, 256], kernel_size=3)
+
+        self.bottleneck_4 = bottleneck(256, [128, 128, 512], kernel_size=3, strides=(2, 2))
+        self.identity_block_4_1 = identity_block3(512, [128, 128, 512], kernel_size=3)
+        self.identity_block_4_2 = identity_block3(512, [128, 128, 512], kernel_size=3)
+
+        # =======================================top=============================================
+        # self.se1 = SELayer(64)
+        # self.se2 = SELayer(128)
+        # self.se3 = SELayer(256)
+
+        # self.local_conv_layer1 = nn.Conv2d(64, self.num_features, kernel_size=1, padding=0, bias=False)
+        # self.local_conv_layer2 = nn.Conv2d(128, self.num_features, kernel_size=1, padding=0, bias=False)
+        # self.local_conv_layer3 = nn.Conv2d(256, self.num_features, kernel_size=1, padding=0, bias=False)
+        # self.instance_layer1 = nn.Linear(self.num_features, self.num_classes)
+        # self.instance_layer2 = nn.Linear(self.num_features, self.num_classes)
+        # self.instance_layer3 = nn.Linear(self.num_features, self.num_classes)
+
+        self.instance0 = nn.Linear(self.num_features, self.num_classes)
+        self.instance1 = nn.Linear(self.num_features, self.num_classes)
+        self.instance2 = nn.Linear(self.num_features, self.num_classes)
+        self.instance3 = nn.Linear(self.num_features, self.num_classes)
+        self.instance4 = nn.Linear(self.num_features, self.num_classes)
+        # self.linear_list = []
+        # for i in range(16):
+        #     self.linear_list.append(nn.Linear(self.num_features, self.num_classes).cuda())
+
+        # self.local_conv = nn.Conv2d(self.num_features, self.num_features, kernel_size=1, padding=0, bias=False)
+        # self.local_bn = nn.BatchNorm2d(self.num_features)
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, input_x):
+        x = self.conv_3x3(input_x)
+
+        x = self.bottleneck_1(x)
+        x = self.identity_block_1_1(x)
+        x_layer1 = self.identity_block_1_2(x)
+
+        x = self.bottleneck_2(x_layer1)
+        x = self.identity_block_2_1(x)
+        x = self.identity_block_2_2(x)
+        x_layer2 = self.identity_block_2_3(x)
+
+        x = self.bottleneck_3(x_layer2)
+        x = self.identity_block_3_1(x)
+        x = self.identity_block_3_2(x)
+        x = self.identity_block_3_3(x)
+        x = self.identity_block_3_4(x)
+        x_layer3 = self.identity_block_3_5(x)
+
+        x = self.bottleneck_4(x_layer3)
+        x = self.identity_block_4_1(x)
+        x = self.identity_block_4_2(x)
+
+        # x_layer1 = self.se1(x_layer1)
+        # x_layer1 = nn.functional.avg_pool2d(x_layer1, kernel_size=(32, 32), stride=(1, 1))
+        # x_layer1 = self.local_conv_layer1(x_layer1)
+        # x_layer1 = x_layer1.contiguous().view(x_layer1.size(0), -1)
+        # x_layer1 = self.instance_layer1(x_layer1)
+        #
+        # x_layer2 = self.se2(x_layer2)
+        # x_layer2 = nn.functional.avg_pool2d(x_layer2, kernel_size=(16, 16), stride=(1, 1))
+        # x_layer2 = self.local_conv_layer2(x_layer2)
+        # x_layer2 = x_layer2.contiguous().view(x_layer2.size(0), -1)
+        # x_layer2 = self.instance_layer2(x_layer2)
+        #
+        # x_layer3 = self.se3(x_layer3)
+        # x_layer3 = nn.functional.avg_pool2d(x_layer3, kernel_size=(8, 8), stride=(1, 1))
+        # x_layer3 = self.local_conv_layer3(x_layer3)
+        # x_layer3 = x_layer3.contiguous().view(x_layer3.size(0), -1)
+        # x_layer3 = self.instance_layer3(x_layer3)
+
+        sx = x.size(2) / 4
+        x = nn.functional.avg_pool2d(x, kernel_size=(sx, x.size(3)), stride=(sx, x.size(3)))  # 4x1
+
+        # x = self.local_conv(x)
+        # x = self.local_bn(x)
+        # x = nn.functional.relu(x)
+
+        x4 = nn.functional.avg_pool2d(x, kernel_size=(4, 1), stride=(1, 1))
+        x4 = x4.contiguous().view(x4.size(0), -1)
+        c4 = self.instance4(x4)
+
+        # x = x.view(x.size(0), x.size(1), 16)
+        # c_list = []
+        # for i in range(16):
+        #     x_offset = torch.empty(x.size(0), 512).cuda(0)
+        #     # print(x_offset[:, :, :].size(), x[:, :, i].size())
+        #     x_offset[:, :] = x[:, :, i]
+        #     tmp = self.linear_list[i](x_offset)
+        #     c_list.append(tmp)
+
+        x = x.chunk(4, dim=2)
+        x0 = x[0].contiguous().view(x[0].size(0), -1)
+        x1 = x[1].contiguous().view(x[1].size(0), -1)
+        x2 = x[2].contiguous().view(x[2].size(0), -1)
+        x3 = x[3].contiguous().view(x[3].size(0), -1)
+        c0 = self.instance0(x0)
+        c1 = self.instance1(x1)
+        c2 = self.instance2(x2)
+        c3 = self.instance3(x3)
+        return c0, c1, c2, c3, c4#c_list, c4##, x_layer1, x_layer2, x_layer3
+
 # class Resnet34:
 #     def __init__(self, training, dropout_rate, num_classes, reuse, include_top):
 #         self.training = training
@@ -1330,6 +1490,8 @@ class Resnet50_CASA(nn.Module):
 #             x = tf.layers.dropout(x, rate=self.dropout_rate, training=self.training)
 #             x = tf.layers.dense(inputs=x, use_bias=True, units=self.num_classes, name='linear', reuse=None)
 #         return x
+
+
 def resnet50(**kwargs):
     """
     Constructs a ResNet50 model.
@@ -1377,3 +1539,10 @@ def d1_resnet50(**kwargs):
     Constructs a Resnet50_1d model.
     """
     return Resnet50_1d(**kwargs)
+
+
+def resnetwhr(**kwargs):
+    """
+    Constructs a ResnetWHR model.
+    """
+    return ResnetWHR(**kwargs)

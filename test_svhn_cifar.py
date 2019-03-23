@@ -1,6 +1,6 @@
 '''
-Training script for CIFAR-10/100
-Copyright (c) Wei YANG, 2017
+This script is only used to test models that are trained with shuffle, the test is without shuffle. Tested models are
+VGG16 and ResNet50, tested datasets are SVHN, CIFAR10 and CIFAR100. This script is called in test_svhn-cifar.sh
 '''
 from __future__ import print_function
 
@@ -83,9 +83,6 @@ parser.add_argument('--gpu-id', default='0', type=str,
 args = parser.parse_args()
 state = {k: v for k, v in args._get_kwargs()}
 
-# Validate dataset
-assert args.dataset == 'cifar10' or args.dataset == 'cifar100', 'Dataset can only be cifar10 or cifar100.'
-
 # Use CUDA
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 use_cuda = torch.cuda.is_available()
@@ -104,21 +101,9 @@ best_acc = 0  # best test accuracy
 
 def main():
     global best_acc
-    start_epoch = args.start_epoch  # start from epoch 0 or last checkpoint epoch
-
-    if not os.path.isdir(args.checkpoint):
-        mkdir_p(args.checkpoint)
-
-
 
     # Data
-    print('==> Preparing dataset %s' % args.dataset)
-    transform_train = transforms.Compose([
-        # transforms.RandomCrop(32, padding=4),  # with p = 1
-        # transforms.RandomHorizontalFlip(),  # with p = 0.5
-        transforms.ToTensor(),  # it must be this guy that makes it CHW again
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    # print('==> Preparing dataset %s' % args.dataset)
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
@@ -127,48 +112,27 @@ def main():
     if args.dataset == 'cifar10':
         dataloader = datasets.CIFAR10
         num_classes = 10
-    else:
+        testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=False, download=False,
+                             transform=transform_test)
+        testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
+    elif args.dataset == 'cifar100':
         dataloader = datasets.CIFAR100
         num_classes = 100
-
-
-    trainset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=True, download=True, transform=transform_train)
-    trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)
-
-    testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=False, download=False, transform=transform_test)
-    testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
+        testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=False, download=False,
+                             transform=transform_test)
+        testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
+    elif args.dataset == 'svhn':
+        dataloader = datasets.SVHN
+        num_classes = 10
+        testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='test', download=True,
+                             transform=transform_test)
+        testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
+    else:
+        raise Exception('dataset can only be svhn or cifar100/10!')
 
     # Model
-    print("==> creating model '{}'".format(args.arch))
-    if args.arch.startswith('resnext'):
-        model = models.__dict__[args.arch](
-                    cardinality=args.cardinality,
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('densenet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    growthRate=args.growthRate,
-                    compressionRate=args.compressionRate,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('wrn'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.endswith('resnet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                )
-    elif args.arch.startswith('resnet50'):
+    # print("==> creating model '{}'".format(args.arch))
+    if args.arch.startswith('resnet50'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     include_top=True,
@@ -181,7 +145,7 @@ def main():
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
-            is_shuff=False  # TODO: check
+            is_shuff=False
         )
     elif args.arch.endswith('vgg16'):
         model = models.__dict__[args.arch](
@@ -190,13 +154,6 @@ def main():
                     dropout_rate=0,
                     layer=args.layer
                 )
-    elif args.arch.endswith('vgg16_sa'):
-        model = models.__dict__[args.arch](
-            num_classes=num_classes,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
     elif args.arch.endswith('vgg16_1d'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
@@ -206,11 +163,11 @@ def main():
             is_shuff=False
         )
     else:
-        model = models.__dict__[args.arch](num_classes=num_classes)
+        raise Exception('model can only be vgg16, vgg16_1d, resnet50, d1_resnet50')
 
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
-    print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
+    # print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
 
     # for name, param in model.named_parameters():
     #     print(name)
@@ -220,119 +177,23 @@ def main():
     #     print(param)
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    # optimizer = optim.Adam(model.parameters(), lr=0.001, weight_decay=args.weight_decay)
 
     # Resume
-    title = 'cifar-10-' + args.arch
     if args.resume:
         # Load checkpoint.
-        print('==> Resuming from checkpoint..')
+        print('==> Resuming from checkpoint..', args.resume)
         assert os.path.isfile(args.resume), 'Error: no checkpoint directory found!'
         args.checkpoint = os.path.dirname(args.resume)
         checkpoint = torch.load(args.resume)
         best_acc = checkpoint['best_acc']
         start_epoch = checkpoint['epoch']
         model.load_state_dict(checkpoint['state_dict'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title, resume=True)
-    else:
-        logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title)
-        logger.set_names(['Learning Rate', 'Train Loss', 'Valid Loss', 'Train Acc.', 'Valid Acc.'])
 
     if args.evaluate:
-        print('\nEvaluation only')
+        # print('\nEvaluation only')
         test_loss, test_acc = test(testloader, model, criterion, start_epoch, use_cuda)
         print(' Test Loss:  %.8f, Test Acc:  %.2f' % (test_loss, test_acc))
         return
-
-    # Train and val
-    for epoch in range(start_epoch, args.epochs):
-        adjust_learning_rate(optimizer, epoch)
-
-        print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
-
-        train_loss, train_acc = train(trainloader, model, criterion, optimizer, epoch, use_cuda)
-        test_loss, test_acc = test(testloader, model, criterion, epoch, use_cuda)
-
-        # append logger file
-        logger.append([state['lr'], train_loss, test_loss, train_acc, test_acc])
-
-        # save model
-        is_best = test_acc > best_acc
-        best_acc = max(test_acc, best_acc)
-        save_checkpoint({
-                'epoch': epoch + 1,
-                'state_dict': model.state_dict(),
-                'acc': test_acc,
-                'best_acc': best_acc,
-                'optimizer': optimizer.state_dict(),
-            }, is_best, checkpoint=args.checkpoint)
-
-    logger.close()
-    logger.plot()
-    savefig(os.path.join(args.checkpoint, 'log.eps'))
-
-    print('Best acc:')
-    print(best_acc)
-
-
-def train(trainloader, model, criterion, optimizer, epoch, use_cuda):
-    # switch to train mode
-    model.train()
-
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-    end = time.time()
-
-    bar = Bar('Processing', max=len(trainloader))
-    for batch_idx, (inputs, targets) in enumerate(trainloader):
-        # print(type(inputs), type(targets))
-        # print(inputs.size(), len(targets))
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda(async=True)
-        inputs, targets = torch.autograd.Variable(inputs), torch.autograd.Variable(targets)
-
-        # compute output
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-
-        # measure accuracy and record loss
-        prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
-        losses.update(loss.data.item(), inputs.size(0))
-        top1.update(prec1.item(), inputs.size(0))
-        top5.update(prec5.item(), inputs.size(0))
-
-        # compute gradient and do SGD step
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-
-        # plot progress
-        bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
-                    batch=batch_idx + 1,
-                    size=len(trainloader),
-                    data=data_time.avg,
-                    bt=batch_time.avg,
-                    total=bar.elapsed_td,
-                    eta=bar.eta_td,
-                    loss=losses.avg,
-                    top1=top1.avg,
-                    top5=top5.avg,
-                    )
-        bar.next()
-    bar.finish()
-    return (losses.avg, top1.avg)
 
 
 def test(testloader, model, criterion, epoch, use_cuda):
@@ -386,22 +247,6 @@ def test(testloader, model, criterion, epoch, use_cuda):
             bar.next()
         bar.finish()
     return (losses.avg, top1.avg)
-
-
-def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoint.pth.tar'):
-    filepath = os.path.join(checkpoint, filename)
-    torch.save(state, filepath)
-    if is_best:
-        shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
-
-
-def adjust_learning_rate(optimizer, epoch):
-    # TODO: try to understand this part
-    global state
-    if epoch in args.schedule:
-        state['lr'] *= args.gamma
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = state['lr']
 
 
 if __name__ == '__main__':
