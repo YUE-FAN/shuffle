@@ -3,7 +3,7 @@ python cifar.py -a resnet50 --dataset cifar100 --depth 110 --epochs 100 --schedu
 
 Resume and evaluation
 tar cvzf ca_sa.tar.gz del/
-python cifar.py -a resnet50 --dataset cifar100 --depth 110 --epochs 100 --schedule 50 75 --gamma 0.1 --wd 1e-4 --resume /data/users/yuefan/fanyue/dconv/checkpoints/cifar100/dconv_cos_resnet50_stage_5_1_winu_60/model_best.pth.tar  --evaluate --gpu-id 0
+python cifar.py -a vgg16 --dataset cifar100 --depth 110 --epochs 100 --schedule 50 75 --gamma 0.1 --wd 1e-4 --resume /data/users/yuefan/fanyue/dconv/checkpoints/cifar100/dconv_shuffle_vgg16_11_winu_60/model_best.pth.tar  --evaluate --gpu-id 0
 
 python cifar.py -a saca_resnet50 --dataset cifar100 --depth 110 --epochs 60 --schedule 50 --gamma 0.1 --wd 1e-4 --checkpoint /data/users/yuefan/fanyue/dconv/checkpoints/cifar100/resnet50_sacafy_60 --gpu-id 3
 python cifar.py -a ca_resnet50 --dataset cifar100 --depth 110 --epochs 60 --schedule 50 --gamma 0.1 --wd 1e-4 --checkpoint /data/users/yuefan/fanyue/dconv/checkpoints/cifar100/resnet50_ca21_60 --gpu-id 0

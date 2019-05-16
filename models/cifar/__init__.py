@@ -67,6 +67,7 @@ from .resnet import *
 from .resnext import *
 from .wrn import *
 from .preresnet import *
-from .densenet import *
+# from .densenet import *
 from .resnetfy import *
 from .vggfy import *
+from .densenetfy import *

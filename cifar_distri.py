@@ -53,7 +53,7 @@ parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied b
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
-                    metavar='W', help='weight decay (default: 1e-4)')
+                    metavar='W', help='weight decay (default: 1e-4 for cifar dataset)')
 # Checkpoints
 parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH',
                     help='path to save checkpoint (default: checkpoint)')

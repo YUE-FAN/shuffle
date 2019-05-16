@@ -156,7 +156,7 @@ def main():
                     widen_factor=args.widen_factor,
                     dropRate=args.drop,
                 )
-    elif args.arch.startswith('densenet'):
+    elif args.arch.endswith('densenet'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     depth=args.depth,
@@ -212,6 +212,12 @@ def main():
             dropout_rate=0,
             layer=args.layer,
             is_shuff=False
+        )
+    elif args.arch.endswith("densenet_1d"):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            drop_rate=0,
+            layer=args.layer
         )
     else:
         model = models.__dict__[args.arch](num_classes=num_classes)

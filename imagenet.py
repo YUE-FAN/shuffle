@@ -224,7 +224,7 @@ def main():
                 'state_dict': model.state_dict(),
                 'acc': test_acc,
                 'best_acc': best_acc,
-                'optimizer' : optimizer.state_dict(),
+                'optimizer': optimizer.state_dict(),
             }, is_best, checkpoint=args.checkpoint)
 
     logger.close()
