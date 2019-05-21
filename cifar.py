@@ -69,6 +69,7 @@ parser.add_argument('--depth', type=int, default=29, help='Model depth.')
 parser.add_argument('--layer', type=int)
 parser.add_argument('--img_size', type=int)
 parser.add_argument('--shuff', type=int)
+parser.add_argument('--DA', action='store_true')
 parser.add_argument('--cardinality', type=int, default=8, help='Model cardinality (group).')
 parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
@@ -113,25 +114,42 @@ def main():
     # Data
     print('==> Preparing dataset %s' % args.dataset)
     if args.img_size == 32:
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),  # with p = 1
-            transforms.RandomHorizontalFlip(),  # with p = 0.5
-            transforms.ToTensor(),  # it must be this guy that makes it CHW again
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
+        if args.DA:
+            print('use DA')
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),  # with p = 1
+                transforms.RandomHorizontalFlip(),  # with p = 0.5
+                transforms.ToTensor(),  # it must be this guy that makes it CHW again
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
+        else:
+            print('no DA')
+            transform_train = transforms.Compose([
+                transforms.ToTensor(),  # it must be this guy that makes it CHW again
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
 
         transform_test = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
     else:
-        transform_train = transforms.Compose([
-            transforms.RandomCrop(32, padding=4),  # with p = 1
-            transforms.RandomHorizontalFlip(),  # with p = 0.5
-            transforms.Resize(args.img_size),
-            transforms.ToTensor(),  # it must be this guy that makes it CHW again
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-        ])
+        if args.DA:
+            print('use DA')
+            transform_train = transforms.Compose([
+                transforms.RandomCrop(32, padding=4),  # with p = 1
+                transforms.RandomHorizontalFlip(),  # with p = 0.5
+                transforms.Resize(args.img_size),
+                transforms.ToTensor(),  # it must be this guy that makes it CHW again
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
+        else:
+            print('no DA')
+            transform_train = transforms.Compose([
+                transforms.Resize(args.img_size),
+                transforms.ToTensor(),  # it must be this guy that makes it CHW again
+                transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            ])
 
         transform_test = transforms.Compose([
             transforms.Resize(args.img_size),
@@ -145,7 +163,6 @@ def main():
     else:
         dataloader = datasets.CIFAR100
         num_classes = 100
-
 
     trainset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=True, download=True, transform=transform_train)
     trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)

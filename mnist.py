@@ -60,7 +60,7 @@ parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied b
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
 parser.add_argument('--weight-decay', '--wd', default=5e-4, type=float,
-                    metavar='W', help='weight decay (default: 1e-4)')
+                    metavar='W', help='weight decay (default: 5e-4 on cifar)')
 # Checkpoints
 parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH',
                     help='path to save checkpoint (default: checkpoint)')
@@ -73,7 +73,8 @@ parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet20',
                         ' | '.join(model_names) +
                         ' (default: resnet18)')
 parser.add_argument('--depth', type=int, default=29, help='Model depth.')
-parser.add_argument('--width', type=int)
+parser.add_argument('--layer', type=int)
+parser.add_argument('--DA', action='store_true')
 parser.add_argument('--cardinality', type=int, default=8, help='Model cardinality (group).')
 parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
@@ -107,37 +108,37 @@ if use_cuda:
 best_acc = 0  # best test accuracy
 
 
-class Linear_Model(nn.Module):
-    def __init__(self, inplane, num_class):
-        super(Linear_Model, self).__init__()
-        self.fc = nn.Conv2d(1, num_class, kernel_size=28, stride=1, padding=0, bias=False)
-
-    def forward(self, input):
-        # np.save('/nethome/yuefan/fanyue/dconv/l_w.npy', self.fc.weight.detach().cpu().numpy())
-        # np.save('/nethome/yuefan/fanyue/dconv/l_b.npy', self.fc.bias.detach().cpu().numpy())
-        x = self.fc(input)
-        x = x.view(x.size(0), -1)
-        return x
-
-
-class MLP(nn.Module):
-    def __init__(self, num_hidden, num_class):
-        super(MLP, self).__init__()
-        self.hidden = nn.Conv2d(1, num_hidden, kernel_size=28, stride=1, padding=0, bias=False)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc = nn.Linear(num_hidden, num_class, bias=False)
-        print('number of hidden layers: ', num_hidden)
-
-    def forward(self, input):
-        x = self.hidden(input)
-        x = self.relu(x)
-        x_shape = x.size()  # [128, 3, 32, 32]
-        shuffled_input = torch.empty(x_shape[0], x_shape[1], x_shape[2], x_shape[3]).cuda(0)
-        perm1 = torch.randperm(x_shape[1])
-        shuffled_input[:, :, :, :] = x[:, perm1, :, :]
-        shuffled_input = shuffled_input.view(shuffled_input.size(0), -1)
-        x = self.fc(shuffled_input)
-        return x
+# class Linear_Model(nn.Module):
+#     def __init__(self, inplane, num_class):
+#         super(Linear_Model, self).__init__()
+#         self.fc = nn.Conv2d(1, num_class, kernel_size=28, stride=1, padding=0, bias=False)
+#
+#     def forward(self, input):
+#         # np.save('/nethome/yuefan/fanyue/dconv/l_w.npy', self.fc.weight.detach().cpu().numpy())
+#         # np.save('/nethome/yuefan/fanyue/dconv/l_b.npy', self.fc.bias.detach().cpu().numpy())
+#         x = self.fc(input)
+#         x = x.view(x.size(0), -1)
+#         return x
+#
+#
+# class MLP(nn.Module):
+#     def __init__(self, num_hidden, num_class):
+#         super(MLP, self).__init__()
+#         self.hidden = nn.Conv2d(1, num_hidden, kernel_size=28, stride=1, padding=0, bias=False)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.fc = nn.Linear(num_hidden, num_class, bias=False)
+#         print('number of hidden layers: ', num_hidden)
+#
+#     def forward(self, input):
+#         x = self.hidden(input)
+#         x = self.relu(x)
+#         x_shape = x.size()  # [128, 3, 32, 32]
+#         shuffled_input = torch.empty(x_shape[0], x_shape[1], x_shape[2], x_shape[3]).cuda(0)
+#         perm1 = torch.randperm(x_shape[1])
+#         shuffled_input[:, :, :, :] = x[:, perm1, :, :]
+#         shuffled_input = shuffled_input.view(shuffled_input.size(0), -1)
+#         x = self.fc(shuffled_input)
+#         return x
 
 
 def main():
@@ -149,16 +150,24 @@ def main():
 
     # Data
     print('==> Preparing dataset %s' % args.dataset)
-    transform_train = transforms.Compose([
-        # transforms.RandomResizedCrop(96),  # with p = 1
-        # transforms.RandomHorizontalFlip(),  # with p = 0.5
-        transforms.ToTensor(),  # it must be this guy that makes it CHW again
-        # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-    ])
+    if args.DA:
+        print('use DA')
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),  # with p = 1
+            transforms.RandomHorizontalFlip(),  # with p = 0.5
+            transforms.ToTensor(),  # it must be this guy that makes it CHW again
+            transforms.Normalize((0.1307,), (0.3081,)),
+        ])
+    else:
+        print('no DA')
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),  # it must be this guy that makes it CHW again
+            transforms.Normalize((0.1307,), (0.3081,)),
+        ])
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        transforms.Normalize((0.1307,), (0.3081,)),
     ])
 
     dataloader = datasets.MNIST
@@ -174,8 +183,31 @@ def main():
     print("==> creating model '{}'".format(args.arch))
 
     # model = Linear_Model(28*28, num_classes)
-    model = MLP(args.width, num_classes)
-
+    # model = MLP(args.width, num_classes)
+    if args.arch.endswith('resnet'):
+        model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    depth=args.depth,
+                )
+    elif args.arch.endswith('resnet50'):
+        model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    include_top=True,
+                    dropout_rate=0
+                )
+    elif args.arch.startswith('vgg'):
+        model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    include_top=True,
+                    dropout_rate=0
+                )
+    elif args.arch.startswith('alexnet'):
+        model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    layer=args.layer
+                )
+    else:
+        model = models.__dict__[args.arch](num_classes=num_classes)
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = True
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
@@ -187,7 +219,7 @@ def main():
     # for param in model.parameters():
     #     print(param)
 
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss().cuda()
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     # Resume
@@ -363,75 +395,75 @@ def test(testloader, model, criterion, epoch, use_cuda):
     return (losses.avg, top1.avg)
 
 
-def test_drop(testloader, model, criterion, epoch, use_cuda):
-    # this function is for random delete and selective delete, it can produce the test acc for each class
-    global best_acc
-
-    batch_time = AverageMeter()
-    data_time = AverageMeter()
-    losses = AverageMeter()
-    top1 = AverageMeter()
-    top5 = AverageMeter()
-
-    # switch to evaluate mode
-    model.eval()
-
-    end = time.time()
-    # bar = Bar('Processing', max=len(testloader))
-    class_top1 = np.zeros((10, ))
-    for batch_idx, (inputs, targets) in enumerate(testloader):
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        if use_cuda:
-            inputs, targets = inputs.cuda(), targets.cuda()
-        inputs, targets = torch.autograd.Variable(inputs, volatile=True), torch.autograd.Variable(targets)
-
-        # compute output
-        outputs = model(inputs)
-        loss = criterion(outputs, targets)
-
-        _, pred = outputs.data.topk(1, 1, True, True)
-        pred = pred.t()
-        gt = targets.data.view(1, -1).expand_as(pred)
-        correct = pred.eq(gt)
-
-        for i in range(10):
-            class_correct = correct[gt == i]
-            # print(class_correct)
-            # print(class_correct.size())
-            if class_correct.size(0) == 0:
-                continue
-            class_top1[i] += class_correct.view(-1).float().sum(0)
-
-
-        # measure accuracy and record loss
-        # prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
-        losses.update(loss.data[0], inputs.size(0))
-        # top1.update(prec1[0], inputs.size(0))
-        # top5.update(prec5[0], inputs.size(0))
-
-        # measure elapsed time
-        batch_time.update(time.time() - end)
-        end = time.time()
-    print(class_top1 / 800)
-    print(np.sum(class_top1)/8000)
-        # plot progress
-    #     bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
-    #                 batch=batch_idx + 1,
-    #                 size=len(testloader),
-    #                 data=data_time.avg,
-    #                 bt=batch_time.avg,
-    #                 total=bar.elapsed_td,
-    #                 eta=bar.eta_td,
-    #                 loss=losses.avg,
-    #                 top1=top1.avg,
-    #                 top5=top5.avg,
-    #                 )
-    #     bar.next()
-    # bar.finish()
-
-    return (losses.avg, top1.avg)
+# def test_drop(testloader, model, criterion, epoch, use_cuda):
+#     # this function is for random delete and selective delete, it can produce the test acc for each class
+#     global best_acc
+#
+#     batch_time = AverageMeter()
+#     data_time = AverageMeter()
+#     losses = AverageMeter()
+#     top1 = AverageMeter()
+#     top5 = AverageMeter()
+#
+#     # switch to evaluate mode
+#     model.eval()
+#
+#     end = time.time()
+#     # bar = Bar('Processing', max=len(testloader))
+#     class_top1 = np.zeros((10, ))
+#     for batch_idx, (inputs, targets) in enumerate(testloader):
+#         # measure data loading time
+#         data_time.update(time.time() - end)
+#
+#         if use_cuda:
+#             inputs, targets = inputs.cuda(), targets.cuda()
+#         inputs, targets = torch.autograd.Variable(inputs, volatile=True), torch.autograd.Variable(targets)
+#
+#         # compute output
+#         outputs = model(inputs)
+#         loss = criterion(outputs, targets)
+#
+#         _, pred = outputs.data.topk(1, 1, True, True)
+#         pred = pred.t()
+#         gt = targets.data.view(1, -1).expand_as(pred)
+#         correct = pred.eq(gt)
+#
+#         for i in range(10):
+#             class_correct = correct[gt == i]
+#             # print(class_correct)
+#             # print(class_correct.size())
+#             if class_correct.size(0) == 0:
+#                 continue
+#             class_top1[i] += class_correct.view(-1).float().sum(0)
+#
+#
+#         # measure accuracy and record loss
+#         # prec1, prec5 = accuracy(outputs.data, targets.data, topk=(1, 5))
+#         losses.update(loss.data[0], inputs.size(0))
+#         # top1.update(prec1[0], inputs.size(0))
+#         # top5.update(prec5[0], inputs.size(0))
+#
+#         # measure elapsed time
+#         batch_time.update(time.time() - end)
+#         end = time.time()
+#     print(class_top1 / 800)
+#     print(np.sum(class_top1)/8000)
+#         # plot progress
+#     #     bar.suffix  = '({batch}/{size}) Data: {data:.3f}s | Batch: {bt:.3f}s | Total: {total:} | ETA: {eta:} | Loss: {loss:.4f} | top1: {top1: .4f} | top5: {top5: .4f}'.format(
+#     #                 batch=batch_idx + 1,
+#     #                 size=len(testloader),
+#     #                 data=data_time.avg,
+#     #                 bt=batch_time.avg,
+#     #                 total=bar.elapsed_td,
+#     #                 eta=bar.eta_td,
+#     #                 loss=losses.avg,
+#     #                 top1=top1.avg,
+#     #                 top5=top5.avg,
+#     #                 )
+#     #     bar.next()
+#     # bar.finish()
+#
+#     return (losses.avg, top1.avg)
 
 
 def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoint.pth.tar'):
@@ -442,7 +474,6 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoin
 
 
 def adjust_learning_rate(optimizer, epoch):
-    # TODO: try to understand this part
     global state
     if epoch in args.schedule:
         state['lr'] *= args.gamma

@@ -17,7 +17,7 @@ This code can re-draw the train/test loss curves or train/test acc curves over e
 #         test_acc.append(float(tmp[4]))
 # print(train_loss)
 # import matplotlib.pyplot as plt
-# x = range(60)
+# x = range(len(train_loss))
 #
 #
 # # plt.plot(x,train_loss, label="train_loss")
@@ -31,7 +31,7 @@ This code can re-draw the train/test loss curves or train/test acc curves over e
 # plt.show()
 # TODO:################################################################################################################
 """
-This code draws the plot between nubmer of standard layers and test acc in the google doc file (experimental results)
+This code draws the plot between number of standard layers and test acc in the google doc file (experimental results)
 """
 import numpy as np
 namelist = ['11', '12', '21', '22', '31', '32', '33', '41', '42', '43', '51', '52', '53']
