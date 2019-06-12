@@ -4,27 +4,29 @@ This code read from 11-99 models, and read out their best test acc from their lo
 
 import os
 import numpy as np
-path = '/data/users/yuefan/fanyue/dconv/checkpoints/fashion-mnist/alexnet1d_300_DA/'
+path = '/BS/yfan/work/trained-models/dconv/checkpoints/small-imagenet/resnet501d_90_imgsize64_noDA/'
 
 final = []
 dir_list = np.sort(os.listdir(path))
 for i in dir_list:
     if i == 'README.md':
         continue
-    # print(path+i+'/log.txt')
+    print(path+i+'/log.txt')
     # if i == 'vgg161d_9953_60':
     #     continue
     with open(path+i+'/log.txt', 'r') as f:
         l = f.readlines()
         l = l[1:]
         a = []
+        b = []
         for ll in l:
             tmp = ll.split()
             a.append(float(tmp[4]))
-        print(max(a))
+            b.append(float(tmp[3]))
+        print("%.2f / %.2f" % (max(a), b[np.argmax(np.array(a))]))
         final.append(max(a))
 
-
+# TODO: this code computes FLOPs and Params for a given model
 # from torchvision.models import vgg16_bn, resnet50
 # import torch
 # from torch.autograd import Variable
@@ -160,3 +162,61 @@ for i in dir_list:
 # print_model_parm_flops(a, (3, 32, 32), False)
 # print('    Total params: %.2fM' % (sum(p.numel() for p in a.parameters())/1000000.0))
 
+# TODO: How to freeze layers
+# for param in model.parameters():
+#     if list(param.size()) == [10, 512] or list(param.size()) == [10]:
+#         print(param.size())
+#         param.requires_grad = True
+#     else:
+#         param.requires_grad = False
+#
+# model = torch.nn.DataParallel(model).cuda()
+# cudnn.benchmark = False
+# print('    Total params: %.2fM' % (
+#             sum(p.numel() for p in filter(lambda p: p.requires_grad, model.parameters())) / 1000000.0))
+
+# TODO: how to modify weight in a conv layer
+# import torch.nn as nn
+# import torch
+# x = torch.arange(0, 96).view(1, 6, 4, 4)
+# a = nn.Conv3d(1, 2, kernel_size=(5,3,3), stride=1, padding=(2,1,1), bias=False)
+# print(x.size())
+# a.weight.data = torch.arange(0, 27).view(1, 3, 3, 3)
+# nn.init.constant_(a.weight, 1)
+# print(a.weight.data.size())
+# o = a(x)
+# print(o.size())
+# print(o)
+
+# TODO:bokeh example
+# from bokeh.io import output_file, show
+# from bokeh.layouts import gridplot
+# from bokeh.models import ColumnDataSource
+# from bokeh.plotting import figure
+#
+# output_file("brushing.html")
+#
+# x =  [0,0,0,0,1,1]
+# y =  [0,0,0,0,1,1]
+# z1 = [0,0,0,0,1,1]
+# z2 = [0,1,2,3,0,1]
+#
+# # create a column data source for the plots to share
+# source = ColumnDataSource(data=dict(x=x, y=y, z1=z1, z2=z2))
+#
+# TOOLS = "box_select,lasso_select,help"
+#
+# # create a new plot and add a renderer
+# left = figure(tools=TOOLS, plot_width=300, plot_height=300, title=None)
+# left.circle('x', 'y', source=source)
+#
+# # create another new plot and add a renderer
+# right = figure(tools=TOOLS, plot_width=300, plot_height=300, title=None)
+# right.circle('z1', 'z2', source=source)
+#
+# s = figure(tools=TOOLS, plot_width=300, plot_height=300, title=None)
+# s.circle('z1', 'z2', source=source)
+#
+# p = gridplot([[left, right, s]])
+#
+# show(p)

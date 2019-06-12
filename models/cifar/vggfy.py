@@ -404,6 +404,7 @@ class VGG16_1d(nn.Module):
         self.include_top = include_top
         self.layer = layer
         self.bias = True
+        self.ex = 1
 
         if is_shuff:
             conv_block = CONV1Dshuff_3x3
@@ -413,97 +414,97 @@ class VGG16_1d(nn.Module):
 
         # Define the building blocks
         if layer > 11:
-            self.conv11 = CONV_3x3(3, 64, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv11 = CONV_3x3(3, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv11 = conv_block(3, 64, bias=self.bias)
+            self.conv11 = conv_block(3, 64*self.ex, bias=self.bias)
 
         if layer > 12:
             # self.conv12 = CONV_3x3(64, 64, kernelsize=3, stride=2, padding='same', bias=False)
-            self.conv12 = nn.Sequential(CONV_3x3(64, 64, kernelsize=3, stride=1, padding='same', bias=self.bias),
+            self.conv12 = nn.Sequential(CONV_3x3(64*self.ex, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
                                         nn.MaxPool2d(kernel_size=2, stride=2))
         else:
-            self.conv12 = conv_block(64, 64, bias=self.bias)
+            self.conv12 = conv_block(64*self.ex, 64*self.ex, bias=self.bias)
 
         if layer > 21:
-            self.conv21 = CONV_3x3(64, 128, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv21 = CONV_3x3(64*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv21 = conv_block(64, 128, bias=self.bias)
+            self.conv21 = conv_block(64*self.ex, 128*self.ex, bias=self.bias)
 
         if layer > 22:
             # self.conv22 = CONV_3x3(128, 128, kernelsize=3, stride=2, padding='same', bias=False)
-            self.conv22 = nn.Sequential(CONV_3x3(128, 128, kernelsize=3, stride=1, padding='same', bias=self.bias),
+            self.conv22 = nn.Sequential(CONV_3x3(128*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
                                         nn.MaxPool2d(kernel_size=2, stride=2))
         else:
-            self.conv22 = conv_block(128, 128, bias=self.bias)
+            self.conv22 = conv_block(128*self.ex, 128*self.ex, bias=self.bias)
 
         if layer > 31:
-            self.conv31 = CONV_3x3(128, 256, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv31 = CONV_3x3(128*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv31 = conv_block(128, 256, bias=self.bias)
+            self.conv31 = conv_block(128*self.ex, 256*self.ex, bias=self.bias)
 
         if layer > 32:
-            self.conv32 = CONV_3x3(256, 256, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv32 = CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv32 = conv_block(256, 256, bias=self.bias)
+            self.conv32 = conv_block(256*self.ex, 256*self.ex, bias=self.bias)
 
         if layer > 33:
             # self.conv33 = CONV_3x3(256, 256, kernelsize=3, stride=2, padding='same', bias=False)
-            self.conv33 = nn.Sequential(CONV_3x3(256, 256, kernelsize=3, stride=1, padding='same', bias=self.bias),
+            self.conv33 = nn.Sequential(CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
                                         nn.MaxPool2d(kernel_size=2, stride=2))
         else:
-            self.conv33 = conv_block(256, 256, bias=self.bias)
+            self.conv33 = conv_block(256*self.ex, 256*self.ex, bias=self.bias)
 
         if layer > 41:
-            self.conv41 = CONV_3x3(256, 512, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv41 = CONV_3x3(256*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv41 = conv_block(256, 512, bias=self.bias)
+            self.conv41 = conv_block(256*self.ex, 512*self.ex, bias=self.bias)
 
         if layer > 42:
-            self.conv42 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv42 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv42 = conv_block(512, 512, bias=self.bias)
+            self.conv42 = conv_block(512*self.ex, 512*self.ex, bias=self.bias)
 
         if layer > 43:
             # self.conv43 = CONV_3x3(512, 512, kernelsize=3, stride=2, padding='same', bias=False)
-            self.conv43 = nn.Sequential(CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=self.bias),
+            self.conv43 = nn.Sequential(CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
                                         nn.MaxPool2d(kernel_size=2, stride=2))
         else:
-            self.conv43 = conv_block(512, 512, bias=self.bias)
+            self.conv43 = conv_block(512*self.ex, 512*self.ex, bias=self.bias)
 
         if layer > 51:
-            self.conv51 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv51 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv51 = conv_block(512, 512, bias=self.bias)
+            self.conv51 = conv_block(512*self.ex, 512*self.ex, bias=self.bias)
 
         if layer > 52:
-            self.conv52 = CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=self.bias)
+            self.conv52 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
         else:
-            self.conv52 = conv_block(512, 512, bias=self.bias)
+            self.conv52 = conv_block(512*self.ex, 512*self.ex, bias=self.bias)
 
         if layer > 53:
             # self.conv53 = CONV_3x3(512, 512, kernelsize=3, stride=2, padding='same', bias=False)
-            self.conv53 = nn.Sequential(CONV_3x3(512, 512, kernelsize=3, stride=1, padding='same', bias=self.bias),
+            self.conv53 = nn.Sequential(CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
                                         nn.MaxPool2d(kernel_size=2, stride=2))
         else:
-            self.conv53 = conv_block(512, 512, bias=self.bias)
+            self.conv53 = conv_block(512*self.ex, 512*self.ex, bias=self.bias)
 
         # self.dropout = nn.Dropout(p=0.5)
-        if layer == 11 or layer == 12:
-            s = 32
-        elif layer == 21 or layer == 22:
-            s = 16
-        elif layer == 31 or layer == 32 or layer == 33:
-            s = 8
-        elif layer == 41 or layer == 42 or layer == 43:
-            s = 4
-        elif layer == 51 or layer == 52 or layer == 53:
-            s = 2
-        else:
-            s = 1
-        self.avgpool = nn.AvgPool2d(s)
-        # self.avgpool = nn.AdaptiveAvgPool2d(1)
+        # if layer == 11 or layer == 12:
+        #     s = 64
+        # elif layer == 21 or layer == 22:
+        #     s = 32
+        # elif layer == 31 or layer == 32 or layer == 33:
+        #     s = 16
+        # elif layer == 41 or layer == 42 or layer == 43:
+        #     s = 8
+        # elif layer == 51 or layer == 52 or layer == 53:
+        #     s = 4
+        # else:
+        #     s = 2
+        # self.avgpool = nn.AvgPool2d(s)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         # self.fc = nn.Linear(512, num_classes)
-        self.fc = nn.Sequential(nn.Linear(512, 4096),
+        self.fc = nn.Sequential(nn.Linear(512*self.ex, 4096),
                                 nn.ReLU(True),
                                 nn.Linear(4096, 4096),
                                 nn.ReLU(True),

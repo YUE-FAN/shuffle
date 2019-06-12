@@ -395,7 +395,7 @@ class bottleneck(nn.Module):
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=strides, padding=(kernel_size - 1) / 2, bias=False)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=strides, padding=int((kernel_size - 1) / 2), bias=False)
         self.bn2 = nn.BatchNorm2d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(plane3)
@@ -429,7 +429,7 @@ class identity_block3(nn.Module):
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=int((kernel_size - 1) / 2), bias=False)
         self.bn2 = nn.BatchNorm2d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(plane3)
@@ -458,7 +458,7 @@ class bottleneck_tr(nn.Module):
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=int((kernel_size - 1) / 2), bias=False)
         self.bn2 = nn.BatchNorm2d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(plane3)
@@ -492,7 +492,7 @@ class bottleneck_save(nn.Module):
         plane1, plane2, plane3 = planes
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
-        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
+        self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=int((kernel_size - 1) / 2), bias=False)
         self.bn2 = nn.BatchNorm2d(plane2)
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(plane3)
@@ -824,16 +824,17 @@ class Resnet50_1d(nn.Module):
         # # self.identity_block_4_2 = identity_block_1D(512, [128, 128, 512], kernel_size=3)
 
         # if layer == 11 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or
-        if layer == 10 or layer == 11 or layer == 12 or layer == 20 or layer == 0:
-            s = 32
-        elif layer == 21 or layer == 22 or layer == 23 or layer == 30:
-            s = 16
-        elif layer == 31 or layer == 32 or layer == 33 or layer == 34 or layer == 35 or layer == 40:
-            s = 8
-        elif layer == 41 or layer == 42 or layer == 99:
-            s = 4
+        # if layer == 10 or layer == 11 or layer == 12 or layer == 20 or layer == 0:
+        #     s = 64
+        # elif layer == 21 or layer == 22 or layer == 23 or layer == 30:
+        #     s = 32
+        # elif layer == 31 or layer == 32 or layer == 33 or layer == 34 or layer == 35 or layer == 40:
+        #     s = 16
+        # elif layer == 41 or layer == 42 or layer == 99:
+        #     s = 8
 
-        self.avgpool = nn.AvgPool2d(s)  # TODO: check the final size
+        # self.avgpool = nn.AvgPool2d(s)  # TODO: check the final size
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Linear(512*block_ex, num_classes)
 
         # Initialize the weights

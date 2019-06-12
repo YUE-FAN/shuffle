@@ -118,7 +118,7 @@ def main():
             print('use DA')
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),  # with p = 1
-                transforms.RandomHorizontalFlip(),  # with p = 0.5
+                # transforms.RandomHorizontalFlip(),  # with p = 0.5
                 transforms.ToTensor(),  # it must be this guy that makes it CHW again
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
@@ -138,7 +138,7 @@ def main():
             print('use DA')
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),  # with p = 1
-                transforms.RandomHorizontalFlip(),  # with p = 0.5
+                # transforms.RandomHorizontalFlip(),  # with p = 0.5
                 transforms.Resize(args.img_size),
                 transforms.ToTensor(),  # it must be this guy that makes it CHW again
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
@@ -164,10 +164,10 @@ def main():
         dataloader = datasets.CIFAR100
         num_classes = 100
 
-    trainset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=True, download=True, transform=transform_train)
+    trainset = dataloader(root='/BS/databases00/cifar-100', train=True, download=True, transform=transform_train)
     trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)
 
-    testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', train=False, download=False, transform=transform_test)
+    testset = dataloader(root='/BS/databases00/cifar-100', train=False, download=False, transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
 
     # Model

@@ -86,9 +86,9 @@ for i in range(len(namelist)):
 import matplotlib.pyplot as plt
 
 x = range(13)
-r100 = np.ones(shape=(13,)) * 49.73
-r10 = np.ones(shape=(13,)) * 83.49
-svhn = np.ones(shape=(13,)) * 94.86
+r100 = np.ones(shape=(len(x),)) * 49.73
+r10 = np.ones(shape=(len(x),)) * 83.49
+svhn = np.ones(shape=(len(x),)) * 94.86
 
 plt.plot(x,r100, label="CIFAR100 stand")
 plt.plot(x,a100, label="CIFAR100 shuffle")

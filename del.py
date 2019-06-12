@@ -1,176 +1,53 @@
-# import torch
-# import torch.nn as nn
-#
-# a = 1
-# m = nn.Conv2d(16, 33, a, stride=1, padding=(a-1)/2)
-# input = torch.randn(20, 16, 99, 99)
-# print(input.size())
-# output = m(input)
-# print(output.size())
+with open('map_clsloc.txt', 'r') as f:
+    mapper = f.readlines()
+n2name = dict()
+for i in mapper:
+    a, b, c = i.split()
+    n2name[a] = c
+dict1 = {0: 'n01532829', 1: 'n01558993', 2: 'n01704323', 3: 'n01749939', 4: 'n01770081', 5: 'n01843383', 6: 'n01855672', 7: 'n01910747', 8: 'n01930112', 9: 'n01981276', 10: 'n02074367', 11: 'n02089867', 12: 'n02091244', 13: 'n02091831', 14: 'n02099601', 15: 'n02101006', 16: 'n02105505', 17: 'n02108089', 18: 'n02108551', 19: 'n02108915', 20: 'n02110063', 21: 'n02110341', 22: 'n02111277', 23: 'n02113712', 24: 'n02114548', 25: 'n02116738', 26: 'n02120079', 27: 'n02129165', 28: 'n02138441', 29: 'n02165456', 30: 'n02174001', 31: 'n02219486', 32: 'n02443484', 33: 'n02457408', 34: 'n02606052', 35: 'n02687172', 36: 'n02747177', 37: 'n02795169', 38: 'n02823428', 39: 'n02871525', 40: 'n02950826', 41: 'n02966193', 42: 'n02971356', 43: 'n02981792', 44: 'n03017168', 45: 'n03047690', 46: 'n03062245', 47: 'n03075370', 48: 'n03127925', 49: 'n03146219', 50: 'n03207743', 51: 'n03220513', 52: 'n03272010', 53: 'n03337140', 54: 'n03347037', 55: 'n03400231', 56: 'n03417042', 57: 'n03476684', 58: 'n03527444', 59: 'n03535780', 60: 'n03544143', 61: 'n03584254', 62: 'n03676483', 63: 'n03770439', 64: 'n03773504', 65: 'n03775546', 66: 'n03838899', 67: 'n03854065', 68: 'n03888605', 69: 'n03908618', 70: 'n03924679', 71: 'n03980874', 72: 'n03998194', 73: 'n04067472', 74: 'n04146614', 75: 'n04149813', 76: 'n04243546', 77: 'n04251144', 78: 'n04258138', 79: 'n04275548', 80: 'n04296562', 81: 'n04389033', 82: 'n04418357', 83: 'n04435653', 84: 'n04443257', 85: 'n04509417', 86: 'n04515003', 87: 'n04522168', 88: 'n04596742', 89: 'n04604644', 90: 'n04612504', 91: 'n06794110', 92: 'n07584110', 93: 'n07613480', 94: 'n07697537', 95: 'n07747607', 96: 'n09246464', 97: 'n09256479', 98: 'n13054560', 99: 'n13133613'}
+
+
+def seek(x):
+    return n2name[dict1[x]]
 
 
 
-
-
-
-
-# from bokeh.io import output_file, show
-# from bokeh.layouts import gridplot
-# from bokeh.models import ColumnDataSource
-# from bokeh.plotting import figure
-#
-# output_file("brushing.html")
-#
-# x =  [0,0,0,0,1,1]
-# y =  [0,0,0,0,1,1]
-# z1 = [0,0,0,0,1,1]
-# z2 = [0,1,2,3,0,1]
-#
-# # create a column data source for the plots to share
-# source = ColumnDataSource(data=dict(x=x, y=y, z1=z1, z2=z2))
-#
-# TOOLS = "box_select,lasso_select,help"
-#
-# # create a new plot and add a renderer
-# left = figure(tools=TOOLS, plot_width=300, plot_height=300, title=None)
-# left.circle('x', 'y', source=source)
-#
-# # create another new plot and add a renderer
-# right = figure(tools=TOOLS, plot_width=300, plot_height=300, title=None)
-# right.circle('z1', 'z2', source=source)
-#
-# s = figure(tools=TOOLS, plot_width=300, plot_height=300, title=None)
-# s.circle('z1', 'z2', source=source)
-#
-# p = gridplot([[left, right, s]])
-#
-# show(p)
-
-
-
-# import torch
-# import torch.nn as nn
-# x = torch.tensor([[1,2,3], [4,5,6], [7,8,9], [10,11,12]], dtype= torch.float)  # [[[10,20,30], [40,50,60]], [[70,80,90], [100,110,120]],
-# x_shape = x.size()  # 233
-# y = x.clone().view(-1, int(x_shape[1]), int(x_shape[2]), 2)
-# y.data.fill_(5)
-# print(x.size())
-# print(x)
-# print(y.size())
-# print(x)
-# print(x.size())  # [1, 2, 2, 3]
-# print(x[0,0,1,2])
-# x = x.view(1, 2, 6)
-# print(x)
-# print(x[0,0,5])
-# print(5//3, 5%3)
-
-
-# import numpy as np
-# from PIL import Image
-# a = np.load('/nethome/yuefan/fanyue/dconv/fm3x3.npy')  # img, fm3x3, fmbottel4
-# print(a.shape)
-# a = a.reshape(16, 32, 32)
-# a = a.transpose(1,2,0)
-#
-# # b = (a*255).astype('uint8')
-# # im = Image.fromarray(b) # monochromatic image
-# # im.show()
-# b = a[:, :, 0]  # 0 and 14
-# b = (b*255).astype('uint8')
-# im = Image.fromarray(b) # monochromatic image
-# im.show()
-
-# import torch.nn as nn
-# import torch
-# # non-square kernels and unequal stride and with padding
-# m = nn.Conv3d(20, 14, (3, 3, 3), stride=(1, 2, 1), padding=(1, 1, 1))
-# input = torch.randn(1, 20, 4, 4, 4)
-# output = m(input)
-# print(input.size())
-# print(output.size())
-
-# import torch.nn as nn
-# import torch
-# x = torch.arange(0, 96).view(1, 6, 4, 4)
-# a = nn.Conv3d(1, 2, kernel_size=(5,3,3), stride=1, padding=(2,1,1), bias=False)
-# print(x.size())
-#
-# # a.weight.data = torch.arange(0, 27).view(1, 3, 3, 3)
-# # nn.init.constant_(a.weight, 1)
-# # print(a.weight.data.size())
-# # o = a(x)
-# # print(o.size())
-# # print(o)
-#
-# m = nn.MaxPool2d(1, stride=2)
-#
-# o = m(x)
-#
-# print(o.size())
-
-# How to freeze layers
-# for param in model.parameters():
-#     if list(param.size()) == [10, 512] or list(param.size()) == [10]:
-#         print(param.size())
-#         param.requires_grad = True
-#     else:
-#         param.requires_grad = False
-#
-# model = torch.nn.DataParallel(model).cuda()
-# cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
-# print('    Total params: %.2fM' % (
-#             sum(p.numel() for p in filter(lambda p: p.requires_grad, model.parameters())) / 1000000.0))
 import numpy as np
 
-
-def loader(dataset, model_type, is_train):
-    model_nums = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]
-    mm = []
-    for model_num in model_nums:
-        saved_path = '/data/users/yuefan/fanyue/dconv/maruis_conjecture/' + dataset + '/' + model_type + '_' + str(
-            model_num) + '/'
-        if is_train:
-            D = np.load(saved_path + 'train_img_manidist_D.npy')
-        else:
-            D = np.load(saved_path + 'test_img_manidist_D.npy')
-        D = np.sqrt(D)
-        tmp = D.mean(axis=1)
-        mm.append(tmp)
-    mm = np.array(mm)
-    return np.mean(mm, axis=0)
-
-
-dataset = 'cifar100'
-
-model_type = 'resnet50'
-train_ref = loader(dataset, model_type, True)
-model_type = 'resnet501d_good_3042'
-train_good = loader(dataset, model_type, True)
-model_type = 'resnet50_shuffle_good_3342'
-train_shuffle_good = loader(dataset, model_type, True)
-model_type = 'resnet501d_bad_1142'
-train_bad = loader(dataset, model_type, True)
-
-model_type = 'resnet50'
-test_ref = loader(dataset, model_type, False)
-model_type = 'resnet501d_good_3042'
-test_good = loader(dataset, model_type, False)
-model_type = 'resnet50_shuffle_good_3342'
-test_shuffle_good = loader(dataset, model_type, False)
-model_type = 'resnet501d_bad_1142'
-test_bad = loader(dataset, model_type, False)
-
-# print(np.sum(shuffle_good>ref))
 import matplotlib.pyplot as plt
+import pickle
 
-# plt.hist(good, bins='auto')  # arguments are passed to np.histogram
-# plt.title("Histogram with 'auto' bins")
-# plt.show()
-# plt.hist(test_ref, bins='auto', alpha=0.5, label='test ref')
-plt.hist(test_shuffle_good, bins='auto', alpha=0.5, label='test shuffle good')
-plt.hist(test_good, bins='auto', alpha=0.5, label='test 1D good')
-plt.legend(loc='upper right')
-plt.xlabel('distance')
+with open("resnet501d_mini_imgsize64_noDA.txt", "rb") as fp:  # Pickling
+    data64 = pickle.load(fp)
+with open("resnet501d_mini_imgsize32_noDA.txt", "rb") as fp:   # Unpickling
+    data = pickle.load(fp)
+with open("resnet501d_mini_imgsize32_DA.txt", "rb") as fp:   # Unpickling
+    noda_data = pickle.load(fp)
+
+# data = data64
+data64 = np.array(data64)
+data = np.array(data)
+# data = data[[13, -1], :]
+
+data = np.array([data64[-1], data[-1]])
+
+data = data - data[-1, :]
+data = data.tolist()
+tmp = data[0]
+data[0] = sorted(tmp)
+
+c = [i[0] for i in sorted(enumerate(tmp), key=lambda x:x[1])]
+
+
+
+X = np.arange(100)
+fig, ax = plt.subplots()
+for i in range(len(data)):
+    ax.bar(X + i * 0.25, data[i], width=0.25)
+ax.set_xticks(np.arange(len(X)))
+xlabels = []
+for i in c:
+    xlabels.append(seek(i))
+ax.set_xticklabels(xlabels, rotation=90, ha='center', fontsize=9)
+plt.title('ref imgsize32 vs ref imgsize64')
 plt.show()
-

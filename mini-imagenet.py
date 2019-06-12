@@ -20,7 +20,7 @@ import torch.utils.data as data
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import models.cifar as models
-from offlineDA import ImageNet_Train, ImageNet_Train_64
+from offlineDA import MiniImageNet
 
 from utils import Bar, Logger, AverageMeter, accuracy, mkdir_p, savefig
 
@@ -70,7 +70,7 @@ parser.add_argument('--depth', type=int, default=29, help='Model depth.')
 parser.add_argument('--layer', type=int)
 parser.add_argument('--img_size', type=int)
 parser.add_argument('--shuff', type=int)
-# parser.add_argument('--DA', action='store_true')
+parser.add_argument('--DA', action='store_true')
 parser.add_argument('--cardinality', type=int, default=8, help='Model cardinality (group).')
 parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
 parser.add_argument('--growthRate', type=int, default=12, help='Growth rate for DenseNet.')
@@ -112,49 +112,51 @@ def main():
         mkdir_p(args.checkpoint)
 
     # Data loading code
-    valdir = os.path.join(args.data, 'val')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
+    print('==> Preparing dataset')
+    if args.DA:
+        print('use DA')
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),  # with p = 1
+            transforms.RandomHorizontalFlip(),  # with p = 0.5
+            transforms.ToTensor(),  # it must be this guy that makes it CHW again
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+        ])
+    else:
+        print('no DA')
+        transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+        ])
 
-    print('no DA')
-    transform_train = transforms.Compose([
+    transform_test = transforms.Compose([
         transforms.ToTensor(),
-        normalize,
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
     ])
 
     if args.img_size == 32:
-        train_loader = torch.utils.data.DataLoader(
-            ImageNet_Train('/BS/database11/ILSVRC2012_imgsize32/train', transform_train),
-            # datasets.ImageFolder(traindir, transform_train),
-            batch_size=args.train_batch, shuffle=True,
-            num_workers=args.workers)
-        transform_test = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.Resize(32),
-            transforms.ToTensor(),
-            normalize,
-        ])
+        trainset = MiniImageNet(args.data, args.img_size, True, transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,
+                                                   num_workers=args.workers)
+
+        valset = MiniImageNet(args.data, args.img_size, False, transform=transform_test)
+        val_loader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch, shuffle=False,
+                                                 num_workers=args.workers)
     elif args.img_size == 64:
-        train_loader = torch.utils.data.DataLoader(
-            ImageNet_Train_64('/BS/database11/ILSVRC2012_imgsize64/', transform_train),
-            # datasets.ImageFolder(traindir, transform_train),
-            batch_size=args.train_batch, shuffle=True,
-            num_workers=args.workers)
-        transform_test = transforms.Compose([
-            transforms.Resize(256),
-            transforms.CenterCrop(224),
-            transforms.Resize(64),
-            transforms.ToTensor(),
-            normalize,
-        ])
+        if args.DA:
+            raise Exception('DA is not currenly supported by imgsize 64!!!')
+
+        trainset = MiniImageNet(args.data, args.img_size, True, transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,
+                                                   num_workers=args.workers)
+
+        valset = MiniImageNet(args.data, args.img_size, False, transform=transform_test)
+        val_loader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch, shuffle=False,
+                                                 num_workers=args.workers)
     else:
         raise Exception('img size can only be 32 or 64')
-
-    val_loader = torch.utils.data.DataLoader(
-        datasets.ImageFolder(valdir, transform_test),
-        batch_size=args.test_batch, shuffle=False,
-        num_workers=args.workers)
 
     # create model
     if args.pretrained:
@@ -162,7 +164,7 @@ def main():
         model = models.__dict__[args.arch](pretrained=True)
     elif args.arch.startswith('d1_resnet50'):
         model = models.__dict__[args.arch](
-            num_classes=1000,
+            num_classes=100,
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
@@ -170,7 +172,7 @@ def main():
         )
     elif args.arch.endswith('vgg16_1d'):
         model = models.__dict__[args.arch](
-            num_classes=1000,
+            num_classes=100,
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
@@ -189,7 +191,7 @@ def main():
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     # Resume
-    title = 'ImageNet-' + args.arch
+    title = 'mini-ImageNet-' + args.arch
     if args.resume:
         # Load checkpoint.
         print('==> Resuming from checkpoint..')
