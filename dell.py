@@ -35,11 +35,11 @@ def main(args):
     # Data loading code
     print('==> Preparing dataset')
     transform_test = transforms.Compose([
+        # transforms.Resize(64),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                             std=[0.229, 0.224, 0.225]),
+        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
     ])
-    valset = MiniImageNet(args.data, args.img_size, False, transform=transform_test)
+    valset = datasets.CIFAR100(args.data, train=False, transform=transform_test)
     val_loader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch, shuffle=False,
                                              num_workers=args.workers)
     # create model
@@ -78,13 +78,14 @@ def main(args):
     model.load_state_dict(checkpoint['state_dict'])
 
     print('\nEvaluation only')
-    _, diag = test(val_loader, model, criterion, start_epoch, use_cuda)
-    return diag.tolist()
-    # np.set_printoptions(precision=2)
-    #
-    # plt.figure()
-    # plot_confusion_matrix(cnf_matrix, classes=range(100),
-    #                       title='Confusion matrix, without normalization')
+    cm, diag = test(val_loader, model, criterion, start_epoch, use_cuda)
+    print(diag)
+    print(cm)
+    np.set_printoptions(precision=2)
+
+    plt.figure()
+    plot_confusion_matrix(cm, classes=range(100),#['airplane', 'automobile','bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck'],
+                          name=args.layer, title='ResNet50 GAP+FC imgsize 32')
 
 
 def test(val_loader, model, criterion, epoch, use_cuda):
@@ -122,7 +123,7 @@ def test(val_loader, model, criterion, epoch, use_cuda):
     return cnf_matrix, np.diag(cnf_matrix)
 
 
-def plot_confusion_matrix(cm, classes,
+def plot_confusion_matrix(cm, classes, name,
                           normalize=False,
                           title='Confusion matrix',
                           cmap=plt.cm.Blues):
@@ -148,14 +149,14 @@ def plot_confusion_matrix(cm, classes,
     fmt = '.2f' if normalize else 'd'
     thresh = cm.max() / 2.
     for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, format(cm[i, j], fmt),
+        plt.text(j, i, ' ', #format(cm[i, j], fmt),
                  horizontalalignment="center",
                  color="white" if cm[i, j] > thresh else "black")
 
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.tight_layout()
-    plt.show()
+    plt.savefig(str(name) + '.png')
 
 
 class Employee:
@@ -165,13 +166,13 @@ class Employee:
 if __name__ == '__main__':
     args = Employee()  # Create an empty emp
     args.arch = 'd1_resnet50'
-    args.data = '/BS/database11/mini-imagenet64/'
-    args.img_size = 64
-    args.gpu_id = '0'
+    args.layer = 99
+    args.data = '/data/users/yuefan/fanyue/dconv/data/'
+    args.gpu_id = None
     args.workers = 0
     args.test_batch = 100
     args.manualSeed = 6
-
+    args.gpu_id = '1'
     # Use CUDA
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
     use_cuda = torch.cuda.is_available()
@@ -184,20 +185,24 @@ if __name__ == '__main__':
         torch.cuda.manual_seed_all(args.manualSeed)
         torch.backends.cudnn.deterministic = True
     best_acc = 0  # best test accuracy
-    assert args.img_size == 32 or args.img_size == 64, "img size can only be 32 or 64!"
 
     # layers = [11, 12, 21, 22, 31, 32, 33, 41, 42, 43, 51, 52, 53, 99]
-    layers = [00, 10, 11, 12, 20, 21, 22, 23, 30, 31, 32, 33, 34, 35, 40, 41, 41, 99]
-    m = []
+    # args.resume = '/data/users/yuefan/fanyue/dconv/checkpoints/cifar10/vgg161d_300_noDA/vgg161d_9953_300/model_best.pth.tar'
+    # main(args)
+    layers = [00, 10, 11, 12, 20, 21, 22, 23, 30, 31, 32, 33, 34, 35, 40, 41, 42, 99]
+    # m = []
     for i in layers:
         args.layer = i
         if i == 0:
-            args.resume = '/BS/yfan/work/trained-models/dconv/checkpoints/mini-imagenet/resnet501d_300_imgsize64_noDA/resnet501d_0042_300/model_best.pth.tar'
+            args.resume = '/data/users/yuefan/fanyue/dconv/checkpoints/cifar100/resnet501d_300_noDA/resnet501d_0042_300/model_best.pth.tar'
         else:
-            args.resume = '/BS/yfan/work/trained-models/dconv/checkpoints/mini-imagenet/resnet501d_300_imgsize64_noDA/resnet501d_'+str(i)+'42_300/model_best.pth.tar'
+            args.resume = '/data/users/yuefan/fanyue/dconv/checkpoints/cifar100/resnet501d_300_noDA/resnet501d_'+str(i)+'42_300/model_best.pth.tar'
+            # '/BS/yfan/work/trained-models/dconv/checkpoints/mini-imagenet/resnet501d_300_imgsize64_noDA/resnet501d_'+str(i)+'42_300/model_best.pth.tar'
         print(args.resume)
-        m.append(main(args))
-    print(m)
-    import pickle
-    with open("resnet501d_mini_imgsize64_noDA.txt", "wb") as fp:  # Pickling
-        pickle.dump(m, fp)
+        main(args)
+        # break
+        # m.append(main(args))
+    # print(m)
+    # import pickle
+    # with open("resnet501d_mini_imgsize64_noDA.txt", "wb") as fp:  # Pickling
+    #     pickle.dump(m, fp)
