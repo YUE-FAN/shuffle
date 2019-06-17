@@ -342,6 +342,7 @@ class VGG16(nn.Module):  # TODO: try different config of the channels
 
         # self.dropout = nn.Dropout(p=0.5)
         # self.fc = nn.Linear(512, num_classes)
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(nn.Linear(512, 4096),
                                 nn.ReLU(True),
                                 nn.Linear(4096, 4096),
@@ -376,6 +377,7 @@ class VGG16(nn.Module):  # TODO: try different config of the channels
         x = self.conv51(x)
         x = self.conv52(x)
         x = self.conv53(x)
+        x = self.avgpool(x)
         # print("feature shape:", x.size())
 
         if self.include_top:
