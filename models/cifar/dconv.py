@@ -306,6 +306,68 @@ class Dconv_shuffle(nn.Module):
         return self.dilated_conv(x_offset)
 
 
+class Dconv_localshuffle(nn.Module):
+    """
+    Deformable convolution with random shuffling of the feature map.
+    We first split each feature map into patches, and shuffle only applies within a patch
+    Random shuffling only happened within each page independently.
+    The sampling locations are generated for each forward pass during the training.
+    """
+    def __init__(self, inplane, outplane, kernel_size, stride, padding, nrows, ncols):
+        super(Dconv_localshuffle, self).__init__()
+        print('cifar Dconv_local_shuffle is used')
+        self.nrows = nrows
+        self.ncols = ncols
+        self.dilated_conv = nn.Conv2d(inplane, outplane, kernel_size=kernel_size, stride=stride, padding=padding,
+                                      bias=False)
+
+    def forward(self, x, ):
+        x_shape = x.size()  # [128, 3, 32, 32]
+        x = x.view(x_shape[0], x_shape[1] * x_shape[2] * x_shape[3])  # [128, 3*32*32]
+        x_offset = torch.empty(x_shape[0], x_shape[1], x_shape[2], x_shape[3]).cuda(cuda_number)
+        # np.save('/nethome/yuefan/fanyue/dconv/x.npy', x.detach().cpu().numpy())
+        perm = torch.empty(0).float()
+        for i in range(x_shape[1]):
+            idx = torch.arange(x_shape[2] * x_shape[3]).view(x_shape[2], x_shape[3])
+            idx = self.blockshaped(idx, self.nrows, self.ncols)
+            for j in range(idx.size(0)):  # idx.size(0) is the number of blocks
+                a = torch.randperm(self.nrows * self.ncols)
+                idx[j] = idx[j][a]
+            idx = idx.view(-1, self.nrows, self.ncols)
+            idx = self.unblockshaped(idx, x_shape[2], x_shape[3]) + i * x_shape[2] * x_shape[3]
+            perm = torch.cat((perm, idx.float()), 0)
+        x_offset[:, :, :, :] = x[:, perm.long()].view(x_shape[0], x_shape[1], x_shape[2], x_shape[3])
+        return self.dilated_conv(x_offset)
+
+    def blockshaped(self, arr, nrows, ncols):
+        """
+        Return an array of shape (n, nrows, ncols) where
+        n * nrows * ncols = arr.size
+
+        If arr is a 2D array, the returned array should look like n subblocks with
+        each subblock preserving the "physical" layout of arr.
+        """
+        h, w = arr.shape
+        assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
+        assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
+        return (arr.view(h // nrows, nrows, -1, ncols)
+                .permute(0, 2, 1, 3).contiguous()
+                .view(-1, nrows * ncols))
+
+    def unblockshaped(self, arr, h, w):
+        """
+        Return an array of shape (h, w) where
+        h * w = arr.size
+
+        If arr is of shape (n, nrows, ncols), n sublocks of shape (nrows, ncols),
+        then the returned array preserves the "physical" layout of the sublocks.
+        """
+        n, nrows, ncols = arr.shape
+        return (arr.view(h // nrows, -1, nrows, ncols)
+                .permute(0, 2, 1, 3).contiguous()
+                .view(-1, ))
+
+
 class Dconv_cshuffle(nn.Module):
     """
     Deformable convolution with random shuffling of the feature map.

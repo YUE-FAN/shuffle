@@ -69,6 +69,7 @@ parser.add_argument('--depth', type=int, default=29, help='Model depth.')
 parser.add_argument('--layer', type=int)
 parser.add_argument('--img_size', type=int)
 parser.add_argument('--shuff', type=int)
+parser.add_argument('--nblocks', type=int)
 parser.add_argument('--DA', action='store_true')
 parser.add_argument('--cardinality', type=int, default=8, help='Model cardinality (group).')
 parser.add_argument('--widen-factor', type=int, default=4, help='Widen factor. 4 -> 64, 8 -> 128, ...')
@@ -118,7 +119,7 @@ def main():
             print('use DA')
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),  # with p = 1
-                # transforms.RandomHorizontalFlip(),  # with p = 0.5
+                transforms.RandomHorizontalFlip(),  # with p = 0.5
                 transforms.ToTensor(),  # it must be this guy that makes it CHW again
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
             ])
@@ -138,7 +139,7 @@ def main():
             print('use DA')
             transform_train = transforms.Compose([
                 transforms.RandomCrop(32, padding=4),  # with p = 1
-                # transforms.RandomHorizontalFlip(),  # with p = 0.5
+                transforms.RandomHorizontalFlip(),  # with p = 0.5
                 transforms.Resize(args.img_size),
                 transforms.ToTensor(),  # it must be this guy that makes it CHW again
                 transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
@@ -158,6 +159,7 @@ def main():
         ])
 
     if args.dataset == 'cifar10':
+        raise Exception('cifar10 is not possible in MPI')
         dataloader = datasets.CIFAR10
         num_classes = 10
     else:
@@ -172,34 +174,14 @@ def main():
 
     # Model
     print("==> creating model '{}'".format(args.arch))
-    if args.arch.startswith('resnext'):
-        model = models.__dict__[args.arch](
-                    cardinality=args.cardinality,
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('wrn'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.endswith('resnet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                )
-    elif args.arch.startswith('resnet50'):
+    if args.arch.endswith('resnet50'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
                     include_top=True,
                     dropout_rate=0,
                     layer=args.layer
                 )
-    elif args.arch.startswith('d1_resnet50'):
+    elif args.arch.endswith('d1_resnet50'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             include_top=True,
@@ -207,6 +189,22 @@ def main():
             layer=args.layer,
             is_shuff=False  # TODO: check
         )
+    elif args.arch.endswith('resnet50_dconv'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            nblocks=args.nblocks
+        )
+    elif args.arch.endswith('vgg16_dconv'):
+        model = models.__dict__[args.arch](
+                    num_classes=num_classes,
+                    include_top=True,
+                    dropout_rate=0,
+                    layer=args.layer,
+                    nblocks=args.nblocks
+                )
     elif args.arch.endswith('vgg16'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,

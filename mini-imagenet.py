@@ -170,6 +170,13 @@ def main():
             layer=args.layer,
             is_shuff=False  # TODO: check
         )
+    elif args.arch.endswith('resnet50'):
+        model = models.__dict__[args.arch](
+            num_classes=100,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+        )
     elif args.arch.endswith('vgg16_1d'):
         model = models.__dict__[args.arch](
             num_classes=100,
@@ -179,7 +186,7 @@ def main():
             is_shuff=False
         )
     else:
-        raise Exception('you should only choose vgg16_1d or d1_resnet50 as the model')
+        raise Exception('you should only choose vgg16_1d or d1_resnet50 or resnet50 as the model')
 
     model = torch.nn.DataParallel(model).cuda()
 

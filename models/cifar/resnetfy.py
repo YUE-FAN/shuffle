@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 from .dconv import DConv1Dai_share, DConv1Dai, Dconv_cos, Dconv_euc, Dconv_rand, Dconv_drop, Dconv_shuffle, \
-    Dconv_shuffleall, Dconv_none, Dconv_horizontal, Dconv_vertical, Dconv_cshuffle, Dconv_crand
+    Dconv_shuffleall, Dconv_none, Dconv_horizontal, Dconv_vertical, Dconv_cshuffle, Dconv_crand, Dconv_localshuffle
 
 
 class identity_block_1D(nn.Module):
@@ -197,9 +197,6 @@ def conv_1D():
                          # TODO: nn.MaxPool2d(kernel_size=3, stride=2, padding=0))  # 'valid'
 
 
-
-
-
 class CONV_3x3_skip(nn.Module):
     def __init__(self, inplanes, outplanes, kernelsize, stride, padding, bias):
         super(CONV_3x3_skip, self).__init__()
@@ -230,7 +227,7 @@ class CONV_3x3_skip(nn.Module):
 
 
 class bottleneck_dconv(nn.Module):
-    def __init__(self, inplanes, planes, kernel_size, strides=(2, 2), type='error'):
+    def __init__(self, inplanes, planes, kernel_size, nrows, ncols, strides=(2, 2), type='error'):
         super(bottleneck_dconv, self).__init__()
         plane1, plane2, plane3 = planes
 
@@ -255,20 +252,20 @@ class bottleneck_dconv(nn.Module):
         # else:
         #     raise Exception('The type of the dconv does not exit')
 
-        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=strides, padding=0, bias=False)
+        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
 
         # self.offset = DConv1Dai(plane1)
         # self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=(kernel_size - 1) / 2, bias=False)
         # self.dconv = Dconv_drop(8, 8, plane1, plane2)  # TODO: don't use hard code here
-        self.dconv1 = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        self.dconv1 = Dconv_localshuffle(plane1, plane2, kernel_size=kernel_size, stride=strides, padding=1, nrows=nrows, ncols=ncols)
         self.bn2 = nn.BatchNorm2d(plane2)
 
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(plane3)
 
         # self.conv4 = nn.Conv2d(inplanes, plane3, kernel_size=1, stride=strides, padding=0, bias=False)
-        self.dconv2 = Dconv_shuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        self.dconv2 = Dconv_localshuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0, nrows=nrows, ncols=ncols)
         self.bn4 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
 
@@ -294,10 +291,49 @@ class bottleneck_dconv(nn.Module):
         return out
 
 
+class bottleneck_shuffle(nn.Module):
+    def __init__(self, inplanes, planes, kernel_size, strides=(2, 2), type='error'):
+        super(bottleneck_shuffle, self).__init__()
+        plane1, plane2, plane3 = planes
+        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(plane1)
+
+        self.dconv1 = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=strides, padding=1)
+        self.bn2 = nn.BatchNorm2d(plane2)
+
+        self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(plane3)
+
+        self.dconv2 = Dconv_shuffle(inplanes, plane3, kernel_size=1, stride=strides, padding=0)
+        self.bn4 = nn.BatchNorm2d(plane3)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, input_tensor):
+        out = self.conv1(input_tensor)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.dconv1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        shortcut = self.dconv2(input_tensor)
+        shortcut = self.bn4(shortcut)
+
+        out += shortcut
+        out = self.relu(out)
+        return out
+
+
 class identity_block3_dconv(nn.Module):
-    def __init__(self, inplanes, planes, kernel_size, type='error'):
+    def __init__(self, inplanes, planes, kernel_size, nrows, ncols, type='error'):
         super(identity_block3_dconv, self).__init__()
         plane1, plane2, plane3 = planes
+        self.nrows = nrows
+        self.ncols = ncols
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
 
@@ -318,7 +354,7 @@ class identity_block3_dconv(nn.Module):
         #     self.dconv = Dconv_crand(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
         # else:
         #     raise Exception('The type of the dconv does not exit')
-        self.dconv = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        self.dconv = Dconv_localshuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1, nrows=nrows, ncols=ncols)
         self.bn2 = nn.BatchNorm2d(plane2)
 
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
@@ -339,10 +375,26 @@ class identity_block3_dconv(nn.Module):
         out = self.conv3(out)
         out = self.bn3(out)
 
-        type = 'shuffle'  # TODO:!!!!!!!!!!!!!!
+        type = 'localshuffle'  # TODO:!!!!!!!!!!!!!!
 
         if type=='none':
             shuffled_input = input_tensor
+        elif type=='localshuffle':
+            x_shape = input_tensor.size()  # [128, 3, 32, 32]
+            x = input_tensor.view(x_shape[0], x_shape[1] * x_shape[2] * x_shape[3])  # [128, 3*32*32]
+            shuffled_input = torch.empty(x_shape[0], x_shape[1], x_shape[2], x_shape[3]).cuda()
+            # np.save('/nethome/yuefan/fanyue/dconv/x.npy', x.detach().cpu().numpy())
+            perm = torch.empty(0).float()
+            for i in range(x_shape[1]):
+                idx = torch.arange(x_shape[2] * x_shape[3]).view(x_shape[2], x_shape[3])
+                idx = self.blockshaped(idx, self.nrows, self.ncols)
+                for j in range(idx.size(0)):  # idx.size(0) is the number of blocks
+                    a = torch.randperm(self.nrows * self.ncols)
+                    idx[j] = idx[j][a]
+                idx = idx.view(-1, self.nrows, self.ncols)
+                idx = self.unblockshaped(idx, x_shape[2], x_shape[3]) + i * x_shape[2] * x_shape[3]
+                perm = torch.cat((perm, idx.float()), 0)
+            shuffled_input[:, :, :, :] = x[:, perm.long()].view(x_shape[0], x_shape[1], x_shape[2], x_shape[3])
         elif type=='shuffleall':
             x_shape = input_tensor.size()  # [128, 3, 32, 32]
             x = input_tensor.view(x_shape[0], x_shape[1] * x_shape[2] * x_shape[3])  # [128, 3*32*32]
@@ -384,6 +436,75 @@ class identity_block3_dconv(nn.Module):
             shuffled_input[:, :, :, :] = input_tensor[:, perm, :, :]
         else:
             raise Exception('The type of the dconv does not exit')
+        out += shuffled_input
+        out = self.relu(out)
+        return out
+
+    def blockshaped(self, arr, nrows, ncols):
+        """
+        Return an array of shape (n, nrows, ncols) where
+        n * nrows * ncols = arr.size
+
+        If arr is a 2D array, the returned array should look like n subblocks with
+        each subblock preserving the "physical" layout of arr.
+        """
+        h, w = arr.shape
+        assert h % nrows == 0, "{} rows is not evenly divisble by {}".format(h, nrows)
+        assert w % ncols == 0, "{} cols is not evenly divisble by {}".format(w, ncols)
+        return (arr.view(h // nrows, nrows, -1, ncols)
+                .permute(0, 2, 1, 3).contiguous()
+                .view(-1, nrows * ncols))
+
+    def unblockshaped(self, arr, h, w):
+        """
+        Return an array of shape (h, w) where
+        h * w = arr.size
+
+        If arr is of shape (n, nrows, ncols), n sublocks of shape (nrows, ncols),
+        then the returned array preserves the "physical" layout of the sublocks.
+        """
+        n, nrows, ncols = arr.shape
+        return (arr.view(h // nrows, -1, nrows, ncols)
+                .permute(0, 2, 1, 3).contiguous()
+                .view(-1, ))
+
+
+class identity_block3_shuffle(nn.Module):
+    def __init__(self, inplanes, planes, kernel_size, type='error'):
+        super(identity_block3_shuffle, self).__init__()
+        plane1, plane2, plane3 = planes
+
+        self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn1 = nn.BatchNorm2d(plane1)
+
+        self.dconv = Dconv_shuffle(plane1, plane2, kernel_size=kernel_size, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(plane2)
+
+        self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
+        self.bn3 = nn.BatchNorm2d(plane3)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, input_tensor):
+        out = self.conv1(input_tensor)
+        out = self.bn1(out)
+        out = self.relu(out)
+
+        out = self.dconv(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+
+        out = self.conv3(out)
+        out = self.bn3(out)
+
+        x_shape = input_tensor.size()  # [128, 3, 32, 32]
+        x = input_tensor.view(x_shape[0], x_shape[1] * x_shape[2] * x_shape[3])  # [128, 3*32*32]
+        shuffled_input = torch.empty(x_shape[0], x_shape[1], x_shape[2], x_shape[3]).cuda(0)
+        perm = torch.empty(0).float()
+        for i in range(x_shape[1]):
+            a = torch.randperm(x_shape[2] * x_shape[3]) + i * x_shape[2] * x_shape[3]
+            perm = torch.cat((perm, a.float()), 0)
+        shuffled_input[:, :, :, :] = x[:, perm.long()].view(x_shape[0], x_shape[1], x_shape[2], x_shape[3])
+
         out += shuffled_input
         out = self.relu(out)
         return out
@@ -585,70 +706,220 @@ class Resnet50(nn.Module):
         if layer > 10:
             self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
         else:
-            self.bottleneck_1 = bottleneck_dconv(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1), type=type)
+            self.bottleneck_1 = bottleneck_shuffle(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1), type=type)
         if layer > 11:
             self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
         else:
-            self.identity_block_1_1 = identity_block3_dconv(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, type=type)
+            self.identity_block_1_1 = identity_block3_shuffle(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, type=type)
         if layer > 12:
             self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
         else:
-            self.identity_block_1_2 = identity_block3_dconv(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, type=type)
+            self.identity_block_1_2 = identity_block3_shuffle(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, type=type)
 
         if layer > 20:
             self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
         else:
-            self.bottleneck_2 = bottleneck_dconv(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2), type=type)
+            self.bottleneck_2 = bottleneck_shuffle(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2), type=type)
         if layer > 21:
             self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
         else:
-            self.identity_block_2_1 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, type=type)
+            self.identity_block_2_1 = identity_block3_shuffle(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, type=type)
         if layer > 22:
             self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
         else:
-            self.identity_block_2_2 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, type=type)
+            self.identity_block_2_2 = identity_block3_shuffle(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, type=type)
         if layer > 23:
             self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
         else:
-            self.identity_block_2_3 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, type=type)
+            self.identity_block_2_3 = identity_block3_shuffle(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, type=type)
 
         if layer > 30:
             self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
         else:
-            self.bottleneck_3 = bottleneck_dconv(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2), type=type)
+            self.bottleneck_3 = bottleneck_shuffle(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2), type=type)
         if layer > 31:
             self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
         else:
-            self.identity_block_3_1 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
+            self.identity_block_3_1 = identity_block3_shuffle(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
         if layer > 32:
             self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
         else:
-            self.identity_block_3_2 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
+            self.identity_block_3_2 = identity_block3_shuffle(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
         if layer > 33:
             self.identity_block_3_3 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
         else:
-            self.identity_block_3_3 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
+            self.identity_block_3_3 = identity_block3_shuffle(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
         if layer > 34:
             self.identity_block_3_4 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
         else:
-            self.identity_block_3_4 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
+            self.identity_block_3_4 = identity_block3_shuffle(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
         if layer > 35:
             self.identity_block_3_5 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
         else:
-            self.identity_block_3_5 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
+            self.identity_block_3_5 = identity_block3_shuffle(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, type=type)
 
         if layer > 40:
             self.bottleneck_4 = bottleneck(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2))
         else:
-            self.bottleneck_4 = bottleneck_dconv(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2), type=type)
+            self.bottleneck_4 = bottleneck_shuffle(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2), type=type)
         if layer > 41:
             self.identity_block_4_1 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
         else:
-            self.identity_block_4_1 = identity_block3_dconv(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, type=type)
+            self.identity_block_4_1 = identity_block3_shuffle(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, type=type)
         if layer > 42:
             self.identity_block_4_2 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
         else:
-            self.identity_block_4_2 = identity_block3_dconv(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, type=type)
+            self.identity_block_4_2 = identity_block3_shuffle(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, type=type)
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)  # TODO: check the final size
+        self.fc = nn.Linear(512*block_ex, num_classes)
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, input_x):
+        # print(input_x.size())
+        x = self.conv_3x3(input_x)
+        # np.save('/nethome/yuefan/fanyue/dconv/fm3x3.npy', x.detach().cpu().numpy())
+        # print(x.size())
+        x = self.bottleneck_1(x)
+        x = self.identity_block_1_1(x)
+        x = self.identity_block_1_2(x)
+        # print(x.size())
+        x = self.bottleneck_2(x)
+        x = self.identity_block_2_1(x)
+        x = self.identity_block_2_2(x)
+        x = self.identity_block_2_3(x)
+        # print(x.size())
+        x = self.bottleneck_3(x)
+        x = self.identity_block_3_1(x)
+        x = self.identity_block_3_2(x)
+        x = self.identity_block_3_3(x)
+        x = self.identity_block_3_4(x)
+        x = self.identity_block_3_5(x)
+        # print(x.size())
+        x = self.bottleneck_4(x)
+        x = self.identity_block_4_1(x)
+        x = self.identity_block_4_2(x)
+        # print("feature shape:", x.size())
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            # TODO: why there is no dropout
+            x = self.fc(x)
+        return x
+
+
+class Resnet50_dconv(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top, layer, nblocks, type='none'):
+        """
+        only one layer can be shuffled here
+        """
+        print('resnet50_dconv is used')
+        super(Resnet50_dconv, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.nrows = nblocks
+        self.ncols = nblocks
+        block_ex = 4
+
+        # Define the building blocks
+        if layer > 0:
+            self.conv_3x3 = conv_1_3x3()
+        else:
+            self.conv_3x3 = conv_1_3x3_dconv()
+
+        if layer != 10:
+            self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
+        else:
+            self.bottleneck_1 = bottleneck_dconv(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(1, 1), type=type)
+        if layer != 11:
+            self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+        else:
+            self.identity_block_1_1 = identity_block3_dconv(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 12:
+            self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+        else:
+            self.identity_block_1_2 = identity_block3_dconv(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        if layer != 20:
+            self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+        else:
+            self.bottleneck_2 = bottleneck_dconv(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(2, 2), type=type)
+        if layer != 21:
+            self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        else:
+            self.identity_block_2_1 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 22:
+            self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        else:
+            self.identity_block_2_2 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 23:
+            self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        else:
+            self.identity_block_2_3 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        if layer != 30:
+            self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+        else:
+            self.bottleneck_3 = bottleneck_dconv(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(2, 2), type=type)
+        if layer != 31:
+            self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_1 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 32:
+            self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_2 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 33:
+            self.identity_block_3_3 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_3 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 34:
+            self.identity_block_3_4 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_4 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 35:
+            self.identity_block_3_5 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_5 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        if layer != 40:
+            self.bottleneck_4 = bottleneck(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2))
+        else:
+            self.bottleneck_4 = bottleneck_dconv(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(2, 2), type=type)
+        if layer != 41:
+            self.identity_block_4_1 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+        else:
+            self.identity_block_4_1 = identity_block3_dconv(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer != 42:
+            self.identity_block_4_2 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+        else:
+            self.identity_block_4_2 = identity_block3_dconv(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
 
         self.avgpool = nn.AvgPool2d(4)  # TODO: check the final size
         self.fc = nn.Linear(512*block_ex, num_classes)
@@ -927,7 +1198,7 @@ class Resnet50_1d(nn.Module):
         x = self.identity_block_4_2(x)
         if self.layer == 99:
             feat = x
-            x = self.avgpool(x)
+            # x = self.avgpool(x)
         # print("feature shape:", x.size())
 
         if self.include_top:
@@ -1564,6 +1835,12 @@ def d1_resnet50(**kwargs):
     """
     return Resnet50_1d(**kwargs)
 
+
+def resnet50_dconv(**kwargs):
+    """
+    Constructs a Resnet50_1d model.
+    """
+    return Resnet50_dconv(**kwargs)
 
 def resnetwhr(**kwargs):
     """
