@@ -11,6 +11,7 @@ class CONV_3x3(nn.Module):
     """
     def __init__(self, inplanes, outplanes, kernelsize, stride, padding, bias):
         super(CONV_3x3, self).__init__()
+        self.outchannels = outplanes
         if padding == 'same':
             p = int((kernelsize - 1) / 2)
         elif padding == 'valid':
@@ -762,6 +763,107 @@ class VGG16_1d(nn.Module):
         return self.fc(x)
 
 
+class VGG16_truncated(nn.Module):
+    # TODO: layer can not be 11 or 99!!!!!!!!!!!!!!!
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        super(VGG16_truncated, self).__init__()
+        print("CIFAR VGG16_truncated is used")
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.layer = layer
+        self.bias = True
+        self.ex = 1
+        self.modulelist = nn.ModuleList()
+
+        # Define the building blocks
+        if layer > 11:
+            self.modulelist.append(CONV_3x3(3, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 12:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(64 * self.ex, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer > 21:
+            self.modulelist.append(
+                CONV_3x3(64 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 22:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(128 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer > 31:
+            self.modulelist.append(
+                CONV_3x3(128 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 32:
+            self.modulelist.append(
+                CONV_3x3(256 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 33:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(256 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+
+        if layer > 41:
+            self.modulelist.append(
+                CONV_3x3(256 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+
+        if layer > 42:
+            self.modulelist.append(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+
+        if layer > 43:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+
+        if layer > 51:
+            self.modulelist.append(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+
+        if layer > 52:
+            self.modulelist.append(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+
+        if layer > 53:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+
+        if layer == 42 or layer == 43 or layer == 51 or layer == 52 or layer == 53:
+            s = 512 * self.ex
+        elif layer == 32 or layer == 33 or layer == 41:
+            s = 256 * self.ex
+        elif layer == 31 or layer == 22:
+            s = 128 * self.ex
+        elif layer == 21 or layer == 11 or layer == 12:
+            s = 64 * self.ex
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(nn.Linear(s, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, num_classes))
+        print(len(self.modulelist))
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        for i, module in enumerate(self.modulelist):
+            # print("module %d has input feature shape:" % i, x.size())
+            x = module(x)
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+        return x
+
+
 class VGG16_SA(nn.Module):  # TODO: try different config of the channels
     def __init__(self, dropout_rate, num_classes, include_top, layer, type='none'):
         """
@@ -1162,6 +1264,13 @@ def vgg16_dconv(**kwargs):
     Constructs a vgg16_sa model.
     """
     return VGG16_dconv(**kwargs)
+
+
+def vgg16_truncated(**kwargs):
+    """
+    Constructs a VGG16_truncated model.
+    """
+    return VGG16_truncated(**kwargs)
 
 # class VGG16_Transpose(nn.Module):  # TODO: try different config of the channels
 #     def __init__(self, dropout_rate, num_classes, include_top):

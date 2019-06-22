@@ -189,6 +189,21 @@ def main():
             layer=args.layer,
             is_shuff=False  # TODO: check
         )
+    elif args.arch.endswith('resnet50_localshuffle'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            nblocks=args.nblocks
+        )
+    elif args.arch.endswith('resnet50_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith('resnet50_dconv'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
@@ -205,6 +220,13 @@ def main():
                     layer=args.layer,
                     nblocks=args.nblocks
                 )
+    elif args.arch.endswith('vgg16_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith('vgg16'):
         model = models.__dict__[args.arch](
                     num_classes=num_classes,
@@ -212,13 +234,6 @@ def main():
                     dropout_rate=0,
                     layer=args.layer
                 )
-    elif args.arch.endswith('vgg16_sa'):
-        model = models.__dict__[args.arch](
-            num_classes=num_classes,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
     elif args.arch.endswith('vgg16_1d'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,

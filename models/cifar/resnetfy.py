@@ -514,6 +514,7 @@ class bottleneck(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, strides=(2, 2)):
         super(bottleneck, self).__init__()
         plane1, plane2, plane3 = planes
+        self.outchannels = plane3
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
         self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=strides, padding=int((kernel_size - 1) / 2), bias=False)
@@ -548,6 +549,7 @@ class identity_block3(nn.Module):
     def __init__(self, inplanes, planes, kernel_size):
         super(identity_block3, self).__init__()
         plane1, plane2, plane3 = planes
+        self.outchannels = plane3
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn1 = nn.BatchNorm2d(plane1)
         self.conv2 = nn.Conv2d(plane1, plane2, kernel_size=kernel_size, stride=1, padding=int((kernel_size - 1) / 2), bias=False)
@@ -963,6 +965,247 @@ class Resnet50_dconv(nn.Module):
             x = self.avgpool(x)
             x = x.view(x.size(0), -1)
             # TODO: why there is no dropout
+            x = self.fc(x)
+        return x
+
+
+class Resnet50_localshuffle(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top, layer, nblocks, type='none'):
+        """
+        similar to resnet50, but shuffle is substituted by localshuffle
+        """
+        print('Resnet50_localshuffle is used')
+        super(Resnet50_localshuffle, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.nrows = nblocks
+        self.ncols = nblocks
+        block_ex = 4
+
+        # Define the building blocks
+        if layer > 0:
+            self.conv_3x3 = conv_1_3x3()
+        else:
+            self.conv_3x3 = conv_1_3x3_dconv()
+
+        if layer > 10:
+            self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
+        else:
+            self.bottleneck_1 = bottleneck_dconv(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(1, 1), type=type)
+        if layer > 11:
+            self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+        else:
+            self.identity_block_1_1 = identity_block3_dconv(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 12:
+            self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+        else:
+            self.identity_block_1_2 = identity_block3_dconv(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        if layer > 20:
+            self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+        else:
+            self.bottleneck_2 = bottleneck_dconv(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(2, 2), type=type)
+        if layer > 21:
+            self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        else:
+            self.identity_block_2_1 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 22:
+            self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        else:
+            self.identity_block_2_2 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 23:
+            self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        else:
+            self.identity_block_2_3 = identity_block3_dconv(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        if layer > 30:
+            self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+        else:
+            self.bottleneck_3 = bottleneck_dconv(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(2, 2), type=type)
+        if layer > 31:
+            self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_1 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 32:
+            self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_2 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 33:
+            self.identity_block_3_3 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_3 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 34:
+            self.identity_block_3_4 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_4 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 35:
+            self.identity_block_3_5 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        else:
+            self.identity_block_3_5 = identity_block3_dconv(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        if layer > 40:
+            self.bottleneck_4 = bottleneck(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2))
+        else:
+            self.bottleneck_4 = bottleneck_dconv(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3,
+                                                 nrows=self.nrows, ncols=self.ncols, strides=(2, 2), type=type)
+        if layer > 41:
+            self.identity_block_4_1 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+        else:
+            self.identity_block_4_1 = identity_block3_dconv(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+        if layer > 42:
+            self.identity_block_4_2 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+        else:
+            self.identity_block_4_2 = identity_block3_dconv(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex],
+                                                            nrows=self.nrows, ncols=self.ncols, kernel_size=3, type=type)
+
+        self.avgpool = nn.AvgPool2d(4)  # TODO: check the final size
+        self.fc = nn.Linear(512*block_ex, num_classes)
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, input_x):
+        x = self.conv_3x3(input_x)
+        x = self.bottleneck_1(x)
+        x = self.identity_block_1_1(x)
+        x = self.identity_block_1_2(x)
+        x = self.bottleneck_2(x)
+        x = self.identity_block_2_1(x)
+        x = self.identity_block_2_2(x)
+        x = self.identity_block_2_3(x)
+        x = self.bottleneck_3(x)
+        x = self.identity_block_3_1(x)
+        x = self.identity_block_3_2(x)
+        x = self.identity_block_3_3(x)
+        x = self.identity_block_3_4(x)
+        x = self.identity_block_3_5(x)
+        x = self.bottleneck_4(x)
+        x = self.identity_block_4_1(x)
+        x = self.identity_block_4_2(x)
+        # print("feature shape:", x.size())
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+        return x
+
+
+class Resnet50_truncated(nn.Module):
+    # TODO: layer can not be 10 or 00!!!!!!!!!!!!!!!
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        print('Resnet50_truncated is used')
+        super(Resnet50_truncated, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.layer = layer
+        block_ex = 4
+        self.modulelist = nn.ModuleList()
+
+        # Define the building blocks
+        if layer > 0:
+            self.modulelist.append(conv_1_3x3())
+
+        if layer > 10:
+            self.modulelist.append(
+                bottleneck(16 * block_ex, [16 * block_ex, 16 * block_ex, 64 * block_ex], kernel_size=3, strides=(1, 1)))
+        if layer > 11:
+            self.modulelist.append(
+                identity_block3(64 * block_ex, [16 * block_ex, 16 * block_ex, 64 * block_ex], kernel_size=3))
+        if layer > 12:
+            self.modulelist.append(
+                identity_block3(64 * block_ex, [16 * block_ex, 16 * block_ex, 64 * block_ex], kernel_size=3))
+
+        if layer > 20:
+            self.modulelist.append(
+                bottleneck(64 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex], kernel_size=3,
+                           strides=(2, 2)))
+        if layer > 21:
+            self.modulelist.append(
+                identity_block3(128 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex], kernel_size=3))
+        if layer > 22:
+            self.modulelist.append(
+                identity_block3(128 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex], kernel_size=3))
+        if layer > 23:
+            self.modulelist.append(
+                identity_block3(128 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex], kernel_size=3))
+
+        if layer > 30:
+            self.modulelist.append(
+                bottleneck(128 * block_ex, [64 * block_ex, 64 * block_ex, 256 * block_ex], kernel_size=3,
+                           strides=(2, 2)))
+        if layer > 31:
+            self.modulelist.append(
+                identity_block3(256 * block_ex, [64 * block_ex, 64 * block_ex, 256 * block_ex], kernel_size=3))
+        if layer > 32:
+            self.modulelist.append(
+                identity_block3(256 * block_ex, [64 * block_ex, 64 * block_ex, 256 * block_ex], kernel_size=3))
+        if layer > 33:
+            self.modulelist.append(
+                identity_block3(256 * block_ex, [64 * block_ex, 64 * block_ex, 256 * block_ex], kernel_size=3))
+        if layer > 34:
+            self.modulelist.append(
+                identity_block3(256 * block_ex, [64 * block_ex, 64 * block_ex, 256 * block_ex], kernel_size=3))
+        if layer > 35:
+            self.modulelist.append(
+                identity_block3(256 * block_ex, [64 * block_ex, 64 * block_ex, 256 * block_ex], kernel_size=3))
+
+        if layer > 40:
+            self.modulelist.append(
+                bottleneck(256 * block_ex, [128 * block_ex, 128 * block_ex, 512 * block_ex], kernel_size=3,
+                           strides=(2, 2)))
+        if layer > 41:
+            self.modulelist.append(
+                identity_block3(512 * block_ex, [128 * block_ex, 128 * block_ex, 512 * block_ex], kernel_size=3))
+        if layer > 42:
+            self.modulelist.append(
+                identity_block3(512 * block_ex, [128 * block_ex, 128 * block_ex, 512 * block_ex], kernel_size=3))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(self.modulelist[-1].outchannels, num_classes)
+        print(len(self.modulelist))
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+
+        for i, module in enumerate(self.modulelist):
+            # print("module %d has input feature shape:" % i, x.size())
+            x = module(x)
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
             x = self.fc(x)
         return x
 
@@ -1838,9 +2081,24 @@ def d1_resnet50(**kwargs):
 
 def resnet50_dconv(**kwargs):
     """
-    Constructs a Resnet50_1d model.
+    Constructs a resnet50_dconv model.
     """
     return Resnet50_dconv(**kwargs)
+
+
+def resnet50_localshuffle(**kwargs):
+    """
+    Constructs a Resnet50_localshuffle model.
+    """
+    return Resnet50_localshuffle(**kwargs)
+
+
+def resnet50_truncated(**kwargs):
+    """
+    Constructs a Resnet50_truncated model.
+    """
+    return Resnet50_truncated(**kwargs)
+
 
 def resnetwhr(**kwargs):
     """
