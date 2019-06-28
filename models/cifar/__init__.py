@@ -71,3 +71,4 @@ from .preresnet import *
 from .resnetfy import *
 from .vggfy import *
 from .densenetfy import *
+from .mobilenet import *

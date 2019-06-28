@@ -205,6 +205,20 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
+    elif args.arch.endswith('mobilenetv1_1d'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     else:
         raise Exception('you should only choose vgg16_1d or d1_resnet50 as the model')
 

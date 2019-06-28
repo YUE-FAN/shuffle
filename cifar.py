@@ -256,6 +256,20 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
+    elif args.arch.endswith('mobilenetv1_1d'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith("densenet_1d"):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
