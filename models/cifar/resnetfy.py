@@ -1509,7 +1509,7 @@ class Resnet50_1d(nn.Module):
         x = self.identity_block_4_2(x)
         if self.layer == 99:
             feat = x
-            # x = self.avgpool(x)
+            x = self.avgpool(x)
         # print("feature shape:", x.size())
 
         if self.include_top:
