@@ -161,13 +161,27 @@ def main():
     if args.pretrained:
         print("=> using pre-trained model '{}'".format(args.arch))
         model = models.__dict__[args.arch](pretrained=True)
-    elif args.arch.startswith('d1_resnet50'):
+    elif args.arch.endswith('d1_resnet50'):
         model = models.__dict__[args.arch](
             num_classes=1000,
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
             is_shuff=False  # TODO: check
+        )
+    elif args.arch.endswith('vgg16_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
         )
     elif args.arch.endswith('resnet50_1x1'):
         model = models.__dict__[args.arch](
