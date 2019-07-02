@@ -2405,7 +2405,7 @@ def resnet50_1x1(**kwargs):
     return Resnet50_1x1(**kwargs)
 
 
-def resnet50_1x1GAP(**kwargs):
+def resnet50_1x1gap(**kwargs):
     """
     Constructs a Resnet50_1x1GAP model.
     """

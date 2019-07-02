@@ -196,7 +196,7 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
-    elif args.arch.endswith('resnet50_1x1GAP'):
+    elif args.arch.endswith('resnet50_1x1gap'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             include_top=True,
@@ -284,7 +284,7 @@ def main():
             layer=args.layer
         )
     else:
-        model = models.__dict__[args.arch](num_classes=num_classes)
+        raise Exception('choose wrong model!!!!')
 
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
