@@ -1,16 +1,3 @@
-'''
-Imagenet-10dogs has the following 10 dog breeds
-n02088094
-n02116738
-n02096051
-n02093428
-n02107908
-n02096294
-n02110806
-n02088238
-n02088364
-n02107683
-'''
 from __future__ import print_function
 
 import argparse
@@ -41,27 +28,22 @@ model_names = sorted(name for name in models.__dict__
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10/100 Training')
 # Datasets
 parser.add_argument('-d', '--data', default='path to dataset', type=str)
-parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
+parser.add_argument('-j', '--workers', default=32, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 # Optimization options
 parser.add_argument('--epochs', default=300, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--train-batch', default=64, type=int, metavar='N',
+parser.add_argument('--train-batch', default=8, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--test-batch', default=100, type=int, metavar='N',
+parser.add_argument('--test-batch', default=8, type=int, metavar='N',
                     help='test batchsize')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.045, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')
-parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
-                        help='Decrease learning rate at these epochs.')
-parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied by gamma on schedule.')
-parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
-                    help='momentum')
-parser.add_argument('--weight-decay', '--wd', default=1e-4, type=float,
+parser.add_argument('--weight-decay', '--wd', default=0.00004, type=float,
                     metavar='W', help='weight decay (default: 5e-4 for cifar dataset)')
 # Checkpoints
 parser.add_argument('-c', '--checkpoint', default='checkpoint', type=str, metavar='PATH',
@@ -108,6 +90,10 @@ if use_cuda:
     torch.backends.cudnn.deterministic = True
 best_acc = 0  # best test accuracy
 
+num_epochs_per_decay = 2.5
+imagenet_size = 1271167
+decay_steps = int(imagenet_size / args.train_batch * num_epochs_per_decay)
+
 
 def main():
     global best_acc
@@ -141,69 +127,18 @@ def main():
     val_loader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers, pin_memory=True)
 
     # create model
-    if args.arch.endswith('d1_resnet50'):
+    if args.arch.endswith('mobilenetv1_1d'):
         model = models.__dict__[args.arch](
-            num_classes=10,
+            num_classes=1000,
             include_top=True,
-            dropout_rate=0,
-            layer=args.layer,
-            is_shuff=False
-        )
-    elif args.arch.endswith('vgg16_truncated'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
-    elif args.arch.endswith('resnet50_truncated'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
-    elif args.arch.endswith('resnet50_1x1'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
-    elif args.arch.endswith('resnet50_1x1gap'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
-    elif args.arch.endswith('vgg16_1d'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer,
-            is_shuff=False
-        )
-    elif args.arch.endswith('vgg16_1x1'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
-            layer=args.layer
-        )
-    elif args.arch.endswith('mobilenetv1_1d'):
-        model = models.__dict__[args.arch](
-            num_classes=10,
-            include_top=True,
-            dropout_rate=0,
+            dropout_rate=1-0.999,
             layer=args.layer
         )
     elif args.arch.endswith('mobilenetv1_1x1'):
         model = models.__dict__[args.arch](
-            num_classes=10,
+            num_classes=1000,
             include_top=True,
-            dropout_rate=0,
+            dropout_rate=1-0.999,
             layer=args.layer
         )
     else:
@@ -216,10 +151,10 @@ def main():
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0, weight_decay=args.weight_decay)
 
     # Resume
-    title = 'ImageNet-10dogs-' + args.arch
+    title = 'ImageNet' + args.arch
     if args.resume:
         # Load checkpoint.
         print('==> Resuming from checkpoint..')
@@ -242,12 +177,12 @@ def main():
         return
 
     # Train and val
+    num_step = 1.0
     for epoch in range(start_epoch, args.epochs):
-        adjust_learning_rate(optimizer, epoch)
 
         print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
 
-        train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, use_cuda)
+        num_step, train_loss, train_acc = train(train_loader, model, criterion, optimizer, num_step, use_cuda)
         test_loss, test_acc = test(val_loader, model, criterion, epoch, use_cuda)
 
         # append logger file
@@ -272,7 +207,7 @@ def main():
     print(best_acc)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, use_cuda):
+def train(train_loader, model, criterion, optimizer, num_step, use_cuda):
     # switch to train mode
     model.train()
 
@@ -285,6 +220,7 @@ def train(train_loader, model, criterion, optimizer, epoch, use_cuda):
 
     bar = Bar('Processing', max=len(train_loader))
     for batch_idx, (inputs, targets) in enumerate(train_loader):
+        adjust_learning_rate(optimizer, num_step)
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -306,6 +242,7 @@ def train(train_loader, model, criterion, optimizer, epoch, use_cuda):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        num_step = num_step + 1.0
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -325,7 +262,7 @@ def train(train_loader, model, criterion, optimizer, epoch, use_cuda):
                     )
         bar.next()
     bar.finish()
-    return (losses.avg, top1.avg)
+    return num_step, losses.avg, top1.avg
 
 
 def test(val_loader, model, criterion, epoch, use_cuda):
@@ -388,10 +325,10 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoin
         shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
 
 
-def adjust_learning_rate(optimizer, epoch):
+def adjust_learning_rate(optimizer, num_step):
     global state
-    if epoch in args.schedule:
-        state['lr'] *= args.gamma
+    if num_step % decay_steps == 0:
+        state['lr'] *= 0.94
         for param_group in optimizer.param_groups:
             param_group['lr'] = state['lr']
 
