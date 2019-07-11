@@ -177,7 +177,10 @@ def main():
         return
 
     # Train and val
-    num_step = 1.0
+    num_step = 1801711.0
+    for param_group in optimizer.param_groups:
+        state['lr'] = param_group['lr']
+    print(state['lr'])
     for epoch in range(start_epoch, args.epochs):
 
         print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
