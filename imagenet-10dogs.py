@@ -192,6 +192,20 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
+    elif args.arch.endswith('vgg16_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=10,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=10,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith('mobilenetv1_1d'):
         model = models.__dict__[args.arch](
             num_classes=10,
