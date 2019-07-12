@@ -196,7 +196,14 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
-    elif args.arch.endswith('resnet50_1x1gap'):
+    elif args.arch.endswith('resnet50_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_1x1lmp'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             include_top=True,

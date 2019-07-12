@@ -43,7 +43,7 @@ parser.add_argument('--train-batch', default=128, type=int, metavar='N',
                     help='train batchsize')
 parser.add_argument('--test-batch', default=100, type=int, metavar='N',
                     help='test batchsize')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')
@@ -190,7 +190,14 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
-    elif args.arch.endswith('resnet50_1x1gap'):
+    elif args.arch.endswith('resnet50_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_1x1lap'):
         model = models.__dict__[args.arch](
             num_classes=1000,
             include_top=True,
