@@ -31,6 +31,7 @@ import torchvision.datasets as datasets
 import models.cifar as models
 
 from utils import Bar, Logger, AverageMeter, accuracy, mkdir_p, savefig
+from offlineDA import Imagenet_10dogs
 
 # ['alexnet', 'bottleneck', 'conv_1_7x7', 'densenet', 'identity_block3', 'preresnet', 'resnet', 'resnext', 'vgg11',
 # 'vgg11_bn', 'vgg13', 'vgg13_bn', 'vgg16', 'vgg16_bn', 'vgg19', 'vgg19_bn', 'wrn']
@@ -131,13 +132,11 @@ def main():
         transforms.ToTensor(),
         transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
     ])
-    traindir = os.path.join(args.data, 'train')
-    valdir = os.path.join(args.data, 'val')
 
-    trainset = datasets.ImageFolder(traindir, transform_train)
+    trainset = Imagenet_10dogs(args.data, train=True, transform=transform_train)
     train_loader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers, pin_memory=True)
 
-    testset = datasets.ImageFolder(valdir, transform_test)
+    testset = Imagenet_10dogs(args.data, train=False, transform=transform_test)
     val_loader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers, pin_memory=True)
 
     # create model

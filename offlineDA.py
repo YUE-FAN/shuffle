@@ -446,3 +446,57 @@ class SmallImageNet(data.Dataset):
 
     def __len__(self):
         return len(self.data)
+
+
+class Imagenet_10dogs(data.Dataset):
+    """
+    This class passed the sanity check by mini-imagenet_sanitycheck.py in OtherBranch
+
+    Args:
+        file_path: '/BS/database11/mini-imagenet32/' or '/BS/database11/mini-imagenet64/'
+        imgsize: 32 or 64
+        train: True or False
+    """
+    train_list = ['train0']
+    val_list = ['val0']
+
+    def __init__(self, file_path, train, transform=None, target_transform=None):
+        if train:
+            data_list = self.train_list
+        else:
+            data_list = self.val_list
+        self.transform = transform
+        self.target_transform = target_transform
+        self.data = []
+        self.targets = []
+
+        # now load the picked numpy arrays
+        for filename in data_list:
+            file = os.path.join(file_path, filename)
+            with open(file, 'rb') as f:
+                if sys.version_info[0] == 2:
+                    entry = pickle.load(f)
+                else:
+                    entry = pickle.load(f, encoding='latin1')
+
+                self.data.extend(entry['data'])
+                self.targets.extend(entry['labels'])
+                self.class_to_idx = entry['class_to_idx']
+                self.classes = entry['classes']
+
+    def __getitem__(self, index):
+        img, target = self.data[index], self.targets[index]
+        # doing this so that it is consistent with all other datasets
+        # to return a PIL Image
+        img = Image.fromarray(np.transpose(img, (1, 2, 0)))
+
+        if self.transform is not None:
+            img = self.transform(img)
+
+        if self.target_transform is not None:
+            target = self.target_transform(target)
+
+        return img, target
+
+    def __len__(self):
+        return len(self.data)
