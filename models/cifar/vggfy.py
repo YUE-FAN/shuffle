@@ -1272,6 +1272,96 @@ class VGG16_truncated(nn.Module):
         return x
 
 
+class VGG16_del(nn.Module):
+    # TODO: layer can not be 11 or 99!!!!!!!!!!!!!!!
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        super(VGG16_del, self).__init__()
+        print("CIFAR VGG16_del is used")
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.layer = layer
+        self.bias = True
+        self.ex = 1
+        self.modulelist = nn.ModuleList()
+        self.modulelist1 = nn.ModuleList()
+
+        # Define the building blocks
+        if layer > 11:
+            self.modulelist.append(CONV_3x3(3, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 12:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(64 * self.ex, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer > 21:
+            self.modulelist.append(
+                CONV_3x3(64 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 22:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(128 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer > 31:
+            self.modulelist.append(
+                CONV_3x3(128 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 32:
+            self.modulelist.append(
+                CONV_3x3(256 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+        if layer > 33:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(256 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+
+        if layer > 41:
+            self.modulelist.append(
+                CONV_3x3(256 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+
+        if layer > 42:
+            self.modulelist.append(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias))
+
+        if layer > 43:
+            self.modulelist.append(nn.Sequential(
+                CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                nn.MaxPool2d(kernel_size=2, stride=2)))
+
+        if layer >= 51:
+            self.modulelist1.append(
+                CONV1D_3x3(512 * self.ex, 512 * self.ex, bias=self.bias))
+
+        if layer >= 52:
+            self.modulelist1.append(
+                CONV1D_3x3(512 * self.ex, 512 * self.ex, bias=self.bias))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(nn.Linear(512 * self.ex, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, num_classes))
+        print(len(self.modulelist))
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        for i, module in enumerate(self.modulelist):
+            # print("module %d has input feature shape:" % i, x.size())
+            x = module(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        for i, module in enumerate(self.modulelist1):
+            x = module(x)
+        if self.include_top:
+            x = self.fc(x)
+        return x
+
+
 class VGG16_SA(nn.Module):  # TODO: try different config of the channels
     def __init__(self, dropout_rate, num_classes, include_top, layer, type='none'):
         """
@@ -1616,6 +1706,13 @@ class VGG16_WHR(nn.Module):  # TODO: try different config of the channels
         c0 = self.instance0(x0)
         c1 = self.instance1(x1)
         return c0, c1, c4#c_list, c4#
+
+
+def vgg16_del(**kwargs):
+    """
+    Constructs a vgg16_del model.
+    """
+    return VGG16_del(**kwargs)
 
 
 def vggwhr(**kwargs):

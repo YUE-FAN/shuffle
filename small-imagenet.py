@@ -176,6 +176,13 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
+    elif args.arch.endswith('vgg16_del'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith('resnet50_truncated'):
         model = models.__dict__[args.arch](
             num_classes=1000,
