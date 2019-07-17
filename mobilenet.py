@@ -166,9 +166,13 @@ def main():
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title, resume=True)
+        for param_group in optimizer.param_groups:
+            state['lr'] = param_group['lr']
+        num_step = checkpoint['num_step']
     else:
         logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title)
         logger.set_names(['Learning Rate', 'Train Loss', 'Valid Loss', 'Train Acc.', 'Valid Acc.'])
+        num_step = 0
 
     if args.evaluate:
         print('\nEvaluation only')
@@ -177,9 +181,9 @@ def main():
         return
 
     # Train and val
-    num_step = 1801711.0
-    for param_group in optimizer.param_groups:
-        state['lr'] = param_group['lr']
+    # num_step = 3002850.0
+    # for param_group in optimizer.param_groups:
+    #     state['lr'] = param_group['lr']
     print(state['lr'])
     for epoch in range(start_epoch, args.epochs):
 
@@ -200,6 +204,7 @@ def main():
                 'acc': test_acc,
                 'best_acc': best_acc,
                 'optimizer': optimizer.state_dict(),
+                'num_step': num_step
             }, is_best, checkpoint=args.checkpoint)
 
     logger.close()
