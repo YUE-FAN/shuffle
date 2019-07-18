@@ -141,6 +141,27 @@ def main():
             dropout_rate=1-0.999,
             layer=args.layer
         )
+    elif args.arch.endswith('mobilenetv1_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
     else:
         raise Exception('you should only choose vgg16_1d or d1_resnet50 as the model')
 
@@ -172,7 +193,7 @@ def main():
     else:
         logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title)
         logger.set_names(['Learning Rate', 'Train Loss', 'Valid Loss', 'Train Acc.', 'Valid Acc.'])
-        num_step = 0
+        num_step = 1
 
     if args.evaluate:
         print('\nEvaluation only')
