@@ -68,6 +68,7 @@ parser.add_argument('--arch', '-a', metavar='ARCH', default='resnet20',
 parser.add_argument('--depth', type=int, default=29, help='Model depth.')
 parser.add_argument('--layer', type=int)
 parser.add_argument('--img_size', type=int)
+parser.add_argument('--act_type', type=str)
 parser.add_argument('--shuff', type=int)
 parser.add_argument('--nblocks', type=int)
 parser.add_argument('--DA', action='store_true')
@@ -283,6 +284,14 @@ def main():
             include_top=True,
             dropout_rate=0,
             layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            act_type=args.act_type
         )
     elif args.arch.endswith('vgg16_1x1lap'):
         model = models.__dict__[args.arch](
