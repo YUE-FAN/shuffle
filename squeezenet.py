@@ -160,6 +160,8 @@ def main():
     # create model
     if args.arch.endswith('squeezenet'):
         model = models.__dict__[args.arch](num_classes=1000)
+    elif args.arch.endswith('squeezenet_1x1lmp'):
+        model = models.__dict__[args.arch](num_classes=1000, layer=args.layer)
     else:
         raise Exception('you should only choose squeezenet as the model')
 
