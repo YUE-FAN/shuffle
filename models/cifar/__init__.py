@@ -72,4 +72,5 @@ from .resnetfy import *
 from .vggfy import *
 from .densenetfy import *
 from .mobilenet import *
+from .mobilenetv2 import *
 from .squeezenet import *
