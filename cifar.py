@@ -182,6 +182,13 @@ def main():
                     dropout_rate=0,
                     layer=args.layer
                 )
+    elif args.arch.endswith('resnet50_cfiar100_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith('d1_resnet50'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
@@ -250,6 +257,13 @@ def main():
             layer=args.layer
         )
     elif args.arch.endswith('vgg16_del'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_cifar100_1x1lmp'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             include_top=True,

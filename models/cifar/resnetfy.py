@@ -1898,6 +1898,165 @@ class Resnet50_1x1LMP(nn.Module):
         return x
 
 
+class Resnet50_CIFAR100_1x1LMP(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        print('Resnet50_CIFAR100_1x1LMP is used')
+        super(Resnet50_CIFAR100_1x1LMP, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.num_1x1 = layer
+        block_ex = 4
+        self.list1x1 = nn.ModuleList()
+        assert layer in [1, 2, 3, 4, 5, 6], 'num_1x1 should only be 1-6'
+
+        # Define the building blocks
+        self.conv_3x3 = conv_1_3x3()
+
+        self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
+        self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+        self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+
+        self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+        self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+        self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+
+        self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+        self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+
+        if layer >= 1:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 2:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 3:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 4:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 5:
+            self.list1x1.append(nn.Sequential(bottleneck1x1(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], strides=(1, 1)),
+                                              nn.MaxPool2d(2, 2)))
+        if layer >= 6:
+            self.list1x1.append(identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex]))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(512*block_ex, num_classes)
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                raise Exception('BN1d is used, which you should not do!!!!!!!!!!!')
+
+    def forward(self, x):
+        x = self.conv_3x3(x)
+        x = self.bottleneck_1(x)
+        x = self.identity_block_1_1(x)
+        x = self.identity_block_1_2(x)
+        x = self.bottleneck_2(x)
+        x = self.identity_block_2_1(x)
+        x = self.identity_block_2_2(x)
+        x = self.identity_block_2_3(x)
+        x = self.bottleneck_3(x)
+        x = self.identity_block_3_1(x)
+        for i, module in enumerate(self.list1x1):
+            x = module(x)
+        # print("feature shape:", x.size())
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+        return x
+
+
+class Resnet50_Small_1x1LMP(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        print('Resnet50_Small_1x1LMP is used')
+        super(Resnet50_Small_1x1LMP, self).__init__()
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.num_1x1 = layer
+        block_ex = 4
+        self.list1x1 = nn.ModuleList()
+        assert layer in [1, 2, 3, 4, 5], 'num_1x1 should only be 1-5'
+
+        # Define the building blocks
+        self.conv_3x3 = conv_1_3x3()
+
+        self.bottleneck_1 = bottleneck(16 * block_ex, [16 * block_ex, 16 * block_ex, 64 * block_ex], kernel_size=3,
+                                       strides=(1, 1))
+        self.identity_block_1_1 = identity_block3(64 * block_ex, [16 * block_ex, 16 * block_ex, 64 * block_ex],
+                                                  kernel_size=3)
+        self.identity_block_1_2 = identity_block3(64 * block_ex, [16 * block_ex, 16 * block_ex, 64 * block_ex],
+                                                  kernel_size=3)
+
+        self.bottleneck_2 = bottleneck(64 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex], kernel_size=3,
+                                       strides=(2, 2))
+        self.identity_block_2_1 = identity_block3(128 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex],
+                                                  kernel_size=3)
+        self.identity_block_2_2 = identity_block3(128 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex],
+                                                  kernel_size=3)
+        self.identity_block_2_3 = identity_block3(128 * block_ex, [32 * block_ex, 32 * block_ex, 128 * block_ex],
+                                                  kernel_size=3)
+
+        self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+        self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+        self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+
+        if layer >= 1:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 2:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 3:
+            self.list1x1.append(identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex]))
+        if layer >= 4:
+            self.list1x1.append(nn.Sequential(bottleneck1x1(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], strides=(1, 1)),
+                                              nn.MaxPool2d(2, 2)))
+        if layer >= 5:
+            self.list1x1.append(identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex]))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Linear(512*block_ex, num_classes)
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                raise Exception('BN1d is used, which you should not do!!!!!!!!!!!')
+
+    def forward(self, x):
+        x = self.conv_3x3(x)
+        x = self.bottleneck_1(x)
+        x = self.identity_block_1_1(x)
+        x = self.identity_block_1_2(x)
+        x = self.bottleneck_2(x)
+        x = self.identity_block_2_1(x)
+        x = self.identity_block_2_2(x)
+        x = self.identity_block_2_3(x)
+        x = self.bottleneck_3(x)
+        x = self.identity_block_3_1(x)
+        x = self.identity_block_3_2(x)
+        for i, module in enumerate(self.list1x1):
+            x = module(x)
+        # print("feature shape:", x.size())
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+        return x
+
+
 class Transpose_Resnet50(nn.Module):
     def __init__(self, dropout_rate, num_classes, include_top):
         print('Transpose_Resnet50 is used')
@@ -2481,6 +2640,20 @@ def resnet50(**kwargs):
     Constructs a ResNet50 model.
     """
     return Resnet50(**kwargs)
+
+
+def resnet50_cfiar100_1x1lmp(**kwargs):
+    """
+    Constructs a ResNet50 model.
+    """
+    return Resnet50_CIFAR100_1x1LMP(**kwargs)
+
+
+def resnet50_small_1x1lmp(**kwargs):
+    """
+    Constructs a ResNet50 model.
+    """
+    return Resnet50_Small_1x1LMP(**kwargs)
 
 
 def dconv_resnet50(**kwargs):

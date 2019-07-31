@@ -1240,6 +1240,167 @@ class VGG16_LMP(nn.Module):
         return x
 
 
+class VGG16_CIFAR100_1x1LMP(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        super(VGG16_CIFAR100_1x1LMP, self).__init__()
+        print("VGG16_CIFAR100_1x1LMP is used")
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.num_1x1 = layer
+        self.bias = True
+        self.ex = 1
+        self.list1x1 = nn.ModuleList()
+        assert layer in [1, 2, 3], 'num_1x1 should only be 1 or 2 or 3'
+
+        # Define the building blocks
+        self.conv11 = CONV_3x3(3, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv12 = nn.Sequential(CONV_3x3(64*self.ex, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+
+        self.conv21 = CONV_3x3(64*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv22 = nn.Sequential(CONV_3x3(128*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+
+        self.conv31 = CONV_3x3(128*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv32 = CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv33 = nn.Sequential(CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+
+        self.conv41 = CONV_3x3(256*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv42 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+
+        if layer >= 1:
+            self.list1x1.append(nn.Sequential(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias),
+                                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer >= 2:
+            self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+
+        if layer >= 3:
+            self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(nn.Linear(512*self.ex, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, num_classes))
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                raise Exception('You are using a model without BN!!!')
+
+    def forward(self, x):
+        # print('input size:', input_x.size())
+        x = self.conv11(x)
+        x = self.conv12(x)
+
+        x = self.conv21(x)
+        x = self.conv22(x)
+
+        x = self.conv31(x)
+        x = self.conv32(x)
+        x = self.conv33(x)
+
+        x = self.conv41(x)
+        x = self.conv42(x)
+
+        for i, module in enumerate(self.list1x1):
+            x = module(x)
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+        return x
+
+
+class VGG16_Small_1x1LMP(nn.Module):
+    def __init__(self, dropout_rate, num_classes, include_top, layer):
+        super(VGG16_Small_1x1LMP, self).__init__()
+        print("VGG16_Small_1x1LMP is used")
+        self.dropout_rate = dropout_rate
+        self.num_classes = num_classes
+        self.include_top = include_top
+        self.num_1x1 = layer
+        self.bias = True
+        self.ex = 1
+        self.list1x1 = nn.ModuleList()
+        assert layer in [1, 2, 3, 4, 5, 6, 7], 'num_1x1 should only be 1-7'
+
+        # Define the building blocks
+        self.conv11 = CONV_3x3(3, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv12 = nn.Sequential(CONV_3x3(64 * self.ex, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+
+        self.conv21 = CONV_3x3(64 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+        self.conv22 = nn.Sequential(CONV_3x3(128 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+                                    nn.MaxPool2d(kernel_size=2, stride=2))
+
+        self.conv31 = CONV_3x3(128 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+
+        if layer >= 1:
+            self.list1x1.append(CONV_1x1(256*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias))
+        if layer >= 2:
+            self.list1x1.append(nn.Sequential(CONV_1x1(256*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias),
+                                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer >= 3:
+            self.list1x1.append(CONV_1x1(256*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+        if layer >= 4:
+            self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+        if layer >= 5:
+            self.list1x1.append(nn.Sequential(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias),
+                                nn.MaxPool2d(kernel_size=2, stride=2)))
+        if layer >= 6:
+            self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+        if layer >= 7:
+            self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(nn.Linear(512*self.ex, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, 4096),
+                                nn.ReLU(True),
+                                nn.Linear(4096, num_classes))
+
+        # Initialize the weights
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif isinstance(m, nn.BatchNorm2d):
+                # raise Exception('You are using a model without BN!!!')
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm1d):
+                raise Exception('You are using a model without BN!!!')
+
+    def forward(self, x):
+        # print('input size:', input_x.size())
+        x = self.conv11(x)
+        x = self.conv12(x)
+
+        x = self.conv21(x)
+        x = self.conv22(x)
+
+        x = self.conv31(x)
+
+        for i, module in enumerate(self.list1x1):
+            x = module(x)
+
+        if self.include_top:
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.fc(x)
+        return x
+
+
 class VGG16_1x1LAP(nn.Module):
     def __init__(self, dropout_rate, num_classes, include_top, layer):
         super(VGG16_1x1LAP, self).__init__()
@@ -1915,6 +2076,20 @@ def vgg16_del(**kwargs):
     Constructs a vgg16_del model.
     """
     return VGG16_del(**kwargs)
+
+
+def vgg16_cifar100_1x1lmp(**kwargs):
+    """
+    Constructs a VGG16_CIFAR100_1x1LMP model.
+    """
+    return VGG16_CIFAR100_1x1LMP(**kwargs)
+
+
+def vgg16_small_1x1lmp(**kwargs):
+    """
+    Constructs a VGG16_Small_1x1LMP model.
+    """
+    return VGG16_Small_1x1LMP(**kwargs)
 
 
 def vggwhr(**kwargs):
