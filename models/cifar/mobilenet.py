@@ -89,16 +89,16 @@ class CONV_1x1(nn.Module):
 class CONV_DW_1x1(nn.Module):
     def __init__(self, inplanes, outplanes, stride):
         super(CONV_DW_1x1, self).__init__()
-        self.conv_dw = nn.Conv2d(inplanes, inplanes, 1, stride, 0, groups=inplanes, bias=False)
-        self.bn_dw = nn.BatchNorm2d(inplanes, eps=0.001, momentum=1-0.9997)
+        # self.conv_dw = nn.Conv2d(inplanes, inplanes, 1, stride, 0, groups=inplanes, bias=False)
+        # self.bn_dw = nn.BatchNorm2d(inplanes, eps=0.001, momentum=1-0.9997)
         self.conv_1x1 = nn.Conv2d(inplanes, outplanes, 1, 1, 0, bias=False)
         self.bn_1x1 = nn.BatchNorm2d(outplanes, eps=0.001, momentum=1-0.9997)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        x = self.conv_dw(x)
-        x = self.bn_dw(x)
-        x = self.relu(x)
+        # x = self.conv_dw(x)
+        # x = self.bn_dw(x)
+        # x = self.relu(x)
         x = self.conv_1x1(x)
         x = self.bn_1x1(x)
         x = self.relu(x)
