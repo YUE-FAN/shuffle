@@ -37,12 +37,12 @@ class CONV_1x1(nn.Module):
     def __init__(self, inplanes, outplanes, stride, padding, bias):
         super(CONV_1x1, self).__init__()
         self.conv = nn.Conv2d(inplanes, outplanes, kernel_size=1, stride=stride, padding=padding, bias=bias)
-        self.bn = nn.BatchNorm2d(outplanes)
+        # self.bn = nn.BatchNorm2d(outplanes)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
-        x = self.bn(x)
+        # x = self.bn(x)
         x = self.relu(x)
         return x
 
@@ -1088,7 +1088,7 @@ class VGG16_1x1LMP(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                # raise Exception('You are using a model without BN!!!')
+                print(m)
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm1d):
@@ -1342,6 +1342,7 @@ class VGG16_1x1DENSE(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
+                print(m)
                 # raise Exception('You are using a model without BN!!!')
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -1779,7 +1780,7 @@ class VGG16_1x1LAP(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                # raise Exception('You are using a model without BN!!!')
+                print(m)
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm1d):
