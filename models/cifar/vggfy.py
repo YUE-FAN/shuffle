@@ -1638,9 +1638,12 @@ class VGG16_Small_1x1LMP(nn.Module):
             self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
         if layer >= 7:
             self.list1x1.append(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
-
+        if layer in [1, 2]:
+            s = 256 * self.ex
+        else:
+            s = 512 * self.ex
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(nn.Linear(512*self.ex, 4096),
+        self.fc = nn.Sequential(nn.Linear(s, 4096),
                                 nn.ReLU(True),
                                 nn.Linear(4096, 4096),
                                 nn.ReLU(True),

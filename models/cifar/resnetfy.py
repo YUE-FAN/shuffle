@@ -2062,9 +2062,12 @@ class Resnet50_CIFAR100_1x1LMP(nn.Module):
                                               nn.MaxPool2d(2, 2)))
         if layer >= 6:
             self.list1x1.append(identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex]))
-
+        if layer in [1, 2, 3, 4]:
+            s = 256 * block_ex
+        else:
+            s = 512 * block_ex
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(512*block_ex, num_classes)
+        self.fc = nn.Linear(s, num_classes)
 
         # Initialize the weights
         for m in self.modules():
@@ -2144,9 +2147,12 @@ class Resnet50_Small_1x1LMP(nn.Module):
                                               nn.MaxPool2d(2, 2)))
         if layer >= 5:
             self.list1x1.append(identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex]))
-
+        if layer in [1, 2, 3]:
+            s = 256 * block_ex
+        else:
+            s = 512 * block_ex
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Linear(512*block_ex, num_classes)
+        self.fc = nn.Linear(s, num_classes)
 
         # Initialize the weights
         for m in self.modules():
