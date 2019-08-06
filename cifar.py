@@ -284,6 +284,13 @@ def main():
             dropout_rate=0,
             layer=args.layer
         )
+    elif args.arch.endswith('vgg16_1x1dense'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith('vgg16_1d'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
