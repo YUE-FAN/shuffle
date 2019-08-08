@@ -173,8 +173,7 @@ def main():
         #     adjust_learning_rate(optimizer)
 
         print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
-        train_loss, train_acc = train(train_loader, model, criterion, optimizer, use_cuda)
-        adjust_learning_rate(optimizer)
+        train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, use_cuda)
         test_loss, test_acc = test(val_loader, model, criterion, epoch, use_cuda)
 
         # append logger file
@@ -199,7 +198,7 @@ def main():
     print(best_acc)
 
 
-def train(train_loader, model, criterion, optimizer, use_cuda):
+def train(train_loader, model, criterion, optimizer, epoch, use_cuda):
     # switch to train mode
     model.train()
 
@@ -212,6 +211,7 @@ def train(train_loader, model, criterion, optimizer, use_cuda):
 
     bar = Bar('Processing', max=len(train_loader))
     for batch_idx, (inputs, targets) in enumerate(train_loader):
+        adjust_learning_rate(optimizer, epoch, batch_idx, len(train_loader))
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -314,10 +314,14 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoin
     if is_best:
         shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
 
-
-def adjust_learning_rate(optimizer):
+from math import cos, pi
+def adjust_learning_rate(optimizer, epoch, iteration, num_iter):
     global state
-    state['lr'] *= 0.98
+
+    # state['lr'] = optimizer.param_groups[0]['lr']
+    current_iter = iteration + epoch * num_iter
+    max_iter = args.epochs * num_iter
+    state['lr'] = args.lr * (1 + cos(pi * current_iter / max_iter)) / 2
     for param_group in optimizer.param_groups:
         param_group['lr'] = state['lr']
 
