@@ -35,12 +35,14 @@ parser.add_argument('--epochs', default=300, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--train-batch', default=96, type=int, metavar='N',
+parser.add_argument('--train-batch', default=8, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--test-batch', default=96, type=int, metavar='N',
+parser.add_argument('--test-batch', default=8, type=int, metavar='N',
                     help='test batchsize')
-parser.add_argument('--lr', '--learning-rate', default=0.045, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.05, type=float,
                     metavar='LR', help='initial learning rate')
+parser.add_argument('--drop', '--dropout', default=0, type=float,
+                    metavar='Dropout', help='Dropout ratio')
 parser.add_argument('--weight-decay', '--wd', default=0.00004, type=float,
                     metavar='W', help='weight decay (default: 5e-4 for cifar dataset)')
 # Checkpoints
@@ -88,16 +90,20 @@ if use_cuda:
     torch.backends.cudnn.deterministic = True
 best_acc = 0  # best test accuracy
 
+# num_epochs_per_decay = 2.5
+# imagenet_size = 1271167
+# decay_steps = int(imagenet_size / args.train_batch * num_epochs_per_decay)
+
 
 def main():
-    global best_acc
     mem = os.popen('"nvidia-smi" --query-gpu=memory.total,memory.used --format=csv,nounits,noheader').read().split('\n')
     total = mem[0].split(',')[0]
     total = int(total)
-    max_mem = int(total*0.8)
+    max_mem = int(total*0.9)
     x = torch.rand((256, 1024, max_mem)).cuda()
     del x
 
+    global best_acc
     start_epoch = args.start_epoch  # start from epoch 0 or last checkpoint epoch
 
     if not os.path.isdir(args.checkpoint):
@@ -128,13 +134,39 @@ def main():
     val_loader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers, pin_memory=True)
 
     # create model
-    if args.arch.endswith('mobilenetv2'):
-        model = models.__dict__[args.arch](
-            num_classes=1000
-        )
-    elif args.arch.endswith('mobilenetv2_1x1lmp'):
+    if args.arch.endswith('mobilenetv1_1d'):
         model = models.__dict__[args.arch](
             num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            include_top=True,
+            dropout_rate=1-0.999,
             layer=args.layer
         )
     else:
@@ -147,7 +179,7 @@ def main():
 
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
+    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0, weight_decay=args.weight_decay)
 
     # Resume
     title = 'ImageNet' + args.arch
@@ -174,12 +206,15 @@ def main():
         print(' Test Loss:  %.8f, Test Acc:  %.2f' % (test_loss, test_acc))
         return
 
+    # Train and val
+    # num_step = 3002850.0
+    # for param_group in optimizer.param_groups:
+    #     state['lr'] = param_group['lr']
     print(state['lr'])
     for epoch in range(start_epoch, args.epochs):
-        # if epoch % 2 == 0 and epoch != 0:
-        #     adjust_learning_rate(optimizer)
 
         print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
+
         train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, use_cuda)
         test_loss, test_acc = test(val_loader, model, criterion, epoch, use_cuda)
 
@@ -320,6 +355,7 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoin
     torch.save(state, filepath)
     if is_best:
         shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
+
 
 from math import cos, pi
 def adjust_learning_rate(optimizer, epoch, iteration, num_iter):
