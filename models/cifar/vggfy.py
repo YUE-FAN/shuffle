@@ -37,12 +37,12 @@ class CONV_1x1(nn.Module):
     def __init__(self, inplanes, outplanes, stride, padding, bias):
         super(CONV_1x1, self).__init__()
         self.conv = nn.Conv2d(inplanes, outplanes, kernel_size=1, stride=stride, padding=padding, bias=bias)
-        # self.bn = nn.BatchNorm2d(outplanes)
+        self.bn = nn.BatchNorm2d(outplanes)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
-        # x = self.bn(x)
+        x = self.bn(x)
         x = self.relu(x)
         return x
 
@@ -987,7 +987,194 @@ class VGG16_1d(nn.Module):
             # np.save('/nethome/yuefan/fanyue/dconv/weight52.npy', self.fc.weight.detach().cpu().numpy())
 
         return self.fc(x)
-
+# class VGG16_1d(nn.Module):
+#     def __init__(self, dropout_rate, num_classes, include_top, layer, is_shuff=False):
+#         """
+#         :param layer: int, if the conv number is smaller than the layer, normal conv is used; otherwise dconv
+#         :param is_shuff: boolean, whether using CONV1D_3x3 or CONV1Dshuff_3x3
+#         """
+#         super(VGG16_1d, self).__init__()
+#         print("CIFAR VGG16_1d is used")
+#         self.dropout_rate = dropout_rate
+#         self.num_classes = num_classes
+#         self.include_top = include_top
+#         self.layer = layer
+#         self.bias = True
+#         self.ex = 1
+#
+#         if is_shuff:
+#             conv_block = CONV1Dshuff_3x3
+#             print('shuff')
+#         else:
+#             conv_block = CONV_1x1
+#
+#         # Define the building blocks
+#         if layer > 11:
+#             self.conv11 = CONV_3x3(3, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv11 = conv_block(3, 64 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 12:
+#             # self.conv12 = CONV_3x3(64, 64, kernelsize=3, stride=2, padding='same', bias=False)
+#             self.conv12 = nn.Sequential(
+#                 CONV_3x3(64 * self.ex, 64 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                 nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv12 = nn.Sequential(conv_block(64 * self.ex, 64 * self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 21:
+#             self.conv21 = CONV_3x3(64 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv21 = conv_block(64 * self.ex, 128 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 22:
+#             # self.conv22 = CONV_3x3(128, 128, kernelsize=3, stride=2, padding='same', bias=False)
+#             self.conv22 = nn.Sequential(
+#                 CONV_3x3(128 * self.ex, 128 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                 nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv22 = nn.Sequential(conv_block(128 * self.ex, 128 * self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 31:
+#             self.conv31 = CONV_3x3(128 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv31 = conv_block(128 * self.ex, 256 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 32:
+#             self.conv32 = CONV_3x3(256 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv32 = conv_block(256 * self.ex, 256 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 33:
+#             # self.conv33 = CONV_3x3(256, 256, kernelsize=3, stride=2, padding='same', bias=False)
+#             self.conv33 = nn.Sequential(
+#                 CONV_3x3(256 * self.ex, 256 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                 nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv33 = nn.Sequential(conv_block(256 * self.ex, 256 * self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 41:
+#             self.conv41 = CONV_3x3(256 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv41 = conv_block(256 * self.ex, 512 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 42:
+#             self.conv42 = CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv42 = conv_block(512 * self.ex, 512 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 43:
+#             # self.conv43 = CONV_3x3(512, 512, kernelsize=3, stride=2, padding='same', bias=False)
+#             self.conv43 = nn.Sequential(
+#                 CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                 nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv43 = nn.Sequential(conv_block(512 * self.ex, 512 * self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 51:
+#             self.conv51 = CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv51 = conv_block(512 * self.ex, 512 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 52:
+#             self.conv52 = CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv52 = conv_block(512 * self.ex, 512 * self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 53:
+#             # self.conv53 = CONV_3x3(512, 512, kernelsize=3, stride=2, padding='same', bias=False)
+#             self.conv53 = nn.Sequential(
+#                 CONV_3x3(512 * self.ex, 512 * self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                 nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv53 = nn.Sequential(conv_block(512 * self.ex, 512 * self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         # self.fc = nn.Linear(512, num_classes)
+#         self.fc = nn.Sequential(nn.Linear(512 * self.ex, 4096),
+#                                 nn.ReLU(True),
+#                                 nn.Linear(4096, 4096),
+#                                 nn.ReLU(True),
+#                                 nn.Linear(4096, num_classes))
+#
+#         # Initialize the weights
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 # raise Exception('You are using a model without BN!!!')
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#             elif isinstance(m, nn.BatchNorm1d):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#                 # raise Exception('You are using a model without BN!!!')
+#
+#     def forward(self, x):
+#         # print('input size:', input_x.size())
+#         if self.layer == 11:
+#             x = self.avgpool(x)
+#
+#         x = self.conv11(x)
+#         if self.layer == 12:
+#             x = self.avgpool(x)
+#
+#         x = self.conv12(x)
+#         if self.layer == 21:
+#             x = self.avgpool(x)
+#
+#         x = self.conv21(x)
+#         if self.layer == 22:
+#             x = self.avgpool(x)
+#
+#         x = self.conv22(x)
+#         if self.layer == 31:
+#             x = self.avgpool(x)
+#
+#         x = self.conv31(x)
+#         if self.layer == 32:
+#             x = self.avgpool(x)
+#
+#         x = self.conv32(x)
+#         if self.layer == 33:
+#             x = self.avgpool(x)
+#
+#         x = self.conv33(x)
+#         if self.layer == 41:
+#             x = self.avgpool(x)
+#
+#         x = self.conv41(x)
+#         if self.layer == 42:
+#             x = self.avgpool(x)
+#
+#         x = self.conv42(x)
+#         if self.layer == 43:
+#             x = self.avgpool(x)
+#
+#         x = self.conv43(x)
+#         if self.layer == 51:
+#             x = self.avgpool(x)
+#
+#         x = self.conv51(x)
+#         if self.layer == 52:
+#             x = self.avgpool(x)
+#
+#         x = self.conv52(x)
+#         if self.layer == 53:
+#             x = self.avgpool(x)
+#
+#         x = self.conv53(x)
+#         # print("feature shape:", x.size())
+#         if self.layer == 99:
+#             x = self.avgpool(x)
+#
+#         if self.include_top:
+#             x = x.view(x.size(0), -1)
+#             # x = self.dropout(x)
+#             # TODO: why there is no dropout
+#             # np.save('/nethome/yuefan/fanyue/dconv/weight52.npy', self.fc.weight.detach().cpu().numpy())
+#
+#         return self.fc(x)
 
 class VGG16_1x1LMP(nn.Module):
     def __init__(self, dropout_rate, num_classes, include_top, layer):
@@ -1088,7 +1275,6 @@ class VGG16_1x1LMP(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                print(m)
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm1d):
@@ -1246,7 +1432,131 @@ class VGG16_1x1(nn.Module):
             x = x.view(x.size(0), -1)
             x = self.fc(x)
         return x
-
+# class VGG16_1x1(nn.Module):
+#     def __init__(self, dropout_rate, num_classes, include_top, layer):
+#         super(VGG16_1x1, self).__init__()
+#         print("CIFAR VGG16_1x1 is used")
+#         self.dropout_rate = dropout_rate
+#         self.num_classes = num_classes
+#         self.include_top = include_top
+#         self.layer = layer
+#         self.bias = True
+#         self.ex = 1
+#
+#         # Define the building blocks
+#         if layer > 11:
+#             self.conv11 = CONV_3x3(3, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv11 = CONV_1x1(3, 64*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 12:
+#             self.conv12 = nn.Sequential(CONV_3x3(64*self.ex, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv12 = nn.Sequential(CONV_1x1(64*self.ex, 64*self.ex, stride=2, padding=0, bias=self.bias))
+#
+#         if layer > 21:
+#             self.conv21 = CONV_3x3(64*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv21 = CONV_1x1(64*self.ex, 128*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 22:
+#             self.conv22 = nn.Sequential(CONV_3x3(128*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv22 = nn.Sequential(CONV_1x1(128*self.ex, 128*self.ex, stride=2, padding=0, bias=self.bias))
+#
+#         if layer > 31:
+#             self.conv31 = CONV_3x3(128*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv31 = CONV_1x1(128*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 32:
+#             self.conv32 = CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv32 = CONV_1x1(256*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 33:
+#             self.conv33 = nn.Sequential(CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv33 = nn.Sequential(CONV_1x1(256*self.ex, 256*self.ex, stride=2, padding=0, bias=self.bias))
+#
+#         if layer > 41:
+#             self.conv41 = CONV_3x3(256*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv41 = CONV_1x1(256*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 42:
+#             self.conv42 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv42 = CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 43:
+#             self.conv43 = nn.Sequential(CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv43 = nn.Sequential(CONV_1x1(512*self.ex, 512*self.ex, stride=2, padding=0, bias=self.bias))
+#
+#         if layer > 51:
+#             self.conv51 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv51 = CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 52:
+#             self.conv52 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv52 = CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 53:
+#             self.conv53 = nn.Sequential(CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv53 = nn.Sequential(CONV_1x1(512*self.ex, 512*self.ex, stride=2, padding=0, bias=self.bias))
+#
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Sequential(nn.Linear(512*self.ex, 4096),
+#                                 nn.ReLU(True),
+#                                 nn.Linear(4096, 4096),
+#                                 nn.ReLU(True),
+#                                 nn.Linear(4096, num_classes))
+#
+#         # Initialize the weights
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 # raise Exception('You are using a model without BN!!!')
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#             elif isinstance(m, nn.BatchNorm1d):
+#                 raise Exception('You are using a model without BN!!!')
+#
+#     def forward(self, x):
+#         # print('input size:', input_x.size())
+#         x = self.conv11(x)
+#         x = self.conv12(x)
+#
+#         x = self.conv21(x)
+#         x = self.conv22(x)
+#
+#         x = self.conv31(x)
+#         x = self.conv32(x)
+#         x = self.conv33(x)
+#
+#         x = self.conv41(x)
+#         x = self.conv42(x)
+#         x = self.conv43(x)
+#
+#         x = self.conv51(x)
+#         x = self.conv52(x)
+#         x = self.conv53(x)
+#
+#         if self.include_top:
+#             x = self.avgpool(x)
+#             x = x.view(x.size(0), -1)
+#             x = self.fc(x)
+#         return x
 
 class VGG16_1x1DENSE(nn.Module):
     def __init__(self, dropout_rate, num_classes, include_top, layer):
@@ -1342,7 +1652,6 @@ class VGG16_1x1DENSE(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                print(m)
                 # raise Exception('You are using a model without BN!!!')
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
@@ -1374,7 +1683,131 @@ class VGG16_1x1DENSE(nn.Module):
             x = x.view(x.size(0), -1)
             x = self.fc(x)
         return x
-
+# class VGG16_1x1DENSE(nn.Module):
+#     def __init__(self, dropout_rate, num_classes, include_top, layer):
+#         super(VGG16_1x1DENSE, self).__init__()
+#         print("VGG16_1x1DENSE is used")
+#         self.dropout_rate = dropout_rate
+#         self.num_classes = num_classes
+#         self.include_top = include_top
+#         self.layer = layer
+#         self.bias = True
+#         self.ex = 1
+#
+#         # Define the building blocks
+#         if layer > 11:
+#             self.conv11 = CONV_3x3(3, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv11 = CONV_1x1(3, 64*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 12:
+#             self.conv12 = nn.Sequential(CONV_3x3(64*self.ex, 64*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv12 = nn.Sequential(CONV_1x1(64*self.ex, 64*self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 21:
+#             self.conv21 = CONV_3x3(64*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv21 = CONV_1x1(64*self.ex, 128*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 22:
+#             self.conv22 = nn.Sequential(CONV_3x3(128*self.ex, 128*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv22 = nn.Sequential(CONV_1x1(128*self.ex, 128*self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 31:
+#             self.conv31 = CONV_3x3(128*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv31 = CONV_1x1(128*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 32:
+#             self.conv32 = CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv32 = CONV_1x1(256*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 33:
+#             self.conv33 = nn.Sequential(CONV_3x3(256*self.ex, 256*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv33 = nn.Sequential(CONV_1x1(256*self.ex, 256*self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 41:
+#             self.conv41 = CONV_3x3(256*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv41 = CONV_1x1(256*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 42:
+#             self.conv42 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv42 = CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 43:
+#             self.conv43 = nn.Sequential(CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv43 = nn.Sequential(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         if layer > 51:
+#             self.conv51 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv51 = CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 52:
+#             self.conv52 = CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias)
+#         else:
+#             self.conv52 = CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias)
+#
+#         if layer > 53:
+#             self.conv53 = nn.Sequential(CONV_3x3(512*self.ex, 512*self.ex, kernelsize=3, stride=1, padding='same', bias=self.bias),
+#                                         nn.MaxPool2d(kernel_size=2, stride=2))
+#         else:
+#             self.conv53 = nn.Sequential(CONV_1x1(512*self.ex, 512*self.ex, stride=1, padding=0, bias=self.bias))
+#
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Sequential(nn.Linear(512*self.ex, 4096),
+#                                 nn.ReLU(True),
+#                                 nn.Linear(4096, 4096),
+#                                 nn.ReLU(True),
+#                                 nn.Linear(4096, num_classes))
+#
+#         # Initialize the weights
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 # raise Exception('You are using a model without BN!!!')
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#             elif isinstance(m, nn.BatchNorm1d):
+#                 raise Exception('You are using a model without BN!!!')
+#
+#     def forward(self, x):
+#         # print('input size:', input_x.size())
+#         x = self.conv11(x)
+#         x = self.conv12(x)
+#
+#         x = self.conv21(x)
+#         x = self.conv22(x)
+#
+#         x = self.conv31(x)
+#         x = self.conv32(x)
+#         x = self.conv33(x)
+#
+#         x = self.conv41(x)
+#         x = self.conv42(x)
+#         x = self.conv43(x)
+#
+#         x = self.conv51(x)
+#         x = self.conv52(x)
+#         x = self.conv53(x)
+#
+#         if self.include_top:
+#             x = self.avgpool(x)
+#             x = x.view(x.size(0), -1)
+#             x = self.fc(x)
+#         return x
 
 class VGG16_LMP(nn.Module):
     def __init__(self, dropout_rate, num_classes, include_top, layer, act_type):
@@ -1780,7 +2213,6 @@ class VGG16_1x1LAP(nn.Module):
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
             elif isinstance(m, nn.BatchNorm2d):
-                print(m)
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
             elif isinstance(m, nn.BatchNorm1d):

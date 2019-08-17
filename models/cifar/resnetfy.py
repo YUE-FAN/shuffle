@@ -1766,6 +1766,494 @@ class Resnet50_1x1Dense(nn.Module):
             x = x.view(x.size(0), -1)
             x = self.fc(x)
         return x
+# class Resnet50_1d(nn.Module):
+#     def __init__(self, dropout_rate, num_classes, include_top, layer, is_shuff=False):
+#         print('Resnet50_1d is used')
+#         super(Resnet50_1d, self).__init__()
+#         self.dropout_rate = dropout_rate
+#         self.num_classes = num_classes
+#         self.include_top = include_top
+#         self.layer = layer
+#         block_ex = 4
+#
+#         # Define the building blocks
+#         if layer > 0:
+#             self.conv_3x3 = conv_1_3x3()
+#         else:
+#             self.conv_3x3 = conv_1D()
+#
+#         if is_shuff:
+#             identity = identity_block_1D_shuff
+#             bottle = bottleneck_1D_shuff
+#             print('shuff')
+#         else:
+#             identity = identity_block1x1
+#             bottle = bottleneck1x1
+#
+#         if layer > 10:
+#             self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
+#         else:
+#             self.bottleneck_1 = bottle(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], strides=(1, 1))
+#         if layer > 11:
+#             self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_1_1 = identity(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         if layer > 12:
+#             self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_1_2 = identity(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#
+#         if layer > 20:
+#             self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_2 = bottle(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+#         if layer > 21:
+#             self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_1 = identity(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         if layer > 22:
+#             self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_2 = identity(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         if layer > 23:
+#             self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_3 = identity(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#
+#         if layer > 30:
+#             self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_3 = bottle(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], strides=(2, 2))
+#         if layer > 31:
+#             self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_1 = identity(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 32:
+#             self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_2 = identity(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 33:
+#             self.identity_block_3_3 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_3 = identity(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 34:
+#             self.identity_block_3_4 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_4 = identity(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 35:
+#             self.identity_block_3_5 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_5 = identity(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#
+#         if layer > 40:
+#             self.bottleneck_4 = bottleneck(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_4 = bottle(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], strides=(2, 2))
+#         if layer > 41:
+#             self.identity_block_4_1 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_4_1 = identity(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex])
+#         if layer > 42:
+#             self.identity_block_4_2 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_4_2 = identity(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex])
+#
+#         # self.bottleneck_1 = bottleneck(16, [16, 16, 64], kernel_size=3, strides=(1, 1))
+#         # self.identity_block_1_1 = identity_block3(64, [16, 16, 64], kernel_size=3)
+#         # self.identity_block_1_2 = identity_block3(64, [16, 16, 64], kernel_size=3)
+#         # # self.bottleneck_1 = bottleneck_1D(16, [16, 16, 64], kernel_size=3, strides=(1, 1))
+#         # # self.identity_block_1_1 = identity_block_1D(64, [16, 16, 64], kernel_size=3)
+#         # # self.identity_block_1_2 = identity_block_1D(64, [16, 16, 64], kernel_size=3)
+#         #
+#         # self.bottleneck_2 = bottleneck(64, [32, 32, 128], kernel_size=3, strides=(2, 2))
+#         # self.identity_block_2_1 = identity_block3(128, [32, 32, 128], kernel_size=3)
+#         # self.identity_block_2_2 = identity_block3(128, [32, 32, 128], kernel_size=3)
+#         # self.identity_block_2_3 = identity_block3(128, [32, 32, 128], kernel_size=3)
+#         # # self.bottleneck_2 = bottleneck_1D(64, [32, 32, 128], kernel_size=3, strides=(2, 2))
+#         # # self.identity_block_2_1 = identity_block_1D(128, [32, 32, 128], kernel_size=3)
+#         # # self.identity_block_2_2 = identity_block_1D(128, [32, 32, 128], kernel_size=3)
+#         # # self.identity_block_2_3 = identity_block_1D(128, [32, 32, 128], kernel_size=3)
+#         #
+#         # self.bottleneck_3 = bottleneck(128, [64, 64, 256], kernel_size=3, strides=(2, 2))
+#         # self.identity_block_3_1 = identity_block3(256, [64, 64, 256], kernel_size=3)
+#         # self.identity_block_3_2 = identity_block3(256, [64, 64, 256], kernel_size=3)
+#         # self.identity_block_3_3 = identity_block3(256, [64, 64, 256], kernel_size=3)
+#         # self.identity_block_3_4 = identity_block3(256, [64, 64, 256], kernel_size=3)
+#         # self.identity_block_3_5 = identity_block3(256, [64, 64, 256], kernel_size=3)
+#         # # self.bottleneck_3 = bottleneck_1D(128, [64, 64, 256], kernel_size=3, strides=(2, 2))
+#         # # self.identity_block_3_1 = identity_block_1D(256, [64, 64, 256], kernel_size=3)
+#         # # self.identity_block_3_2 = identity_block_1D(256, [64, 64, 256], kernel_size=3)
+#         # # self.identity_block_3_3 = identity_block_1D(256, [64, 64, 256], kernel_size=3)
+#         # # self.identity_block_3_4 = identity_block_1D(256, [64, 64, 256], kernel_size=3)
+#         # # self.identity_block_3_5 = identity_block_1D(256, [64, 64, 256], kernel_size=3)
+#         #
+#         # self.bottleneck_4 = bottleneck(256, [128, 128, 512], kernel_size=3, strides=(2, 2))
+#         # self.identity_block_4_1 = identity_block3(512, [128, 128, 512], kernel_size=3)
+#         # self.identity_block_4_2 = identity_block3(512, [128, 128, 512], kernel_size=3)
+#         # # self.bottleneck_4 = bottleneck_1D(256, [128, 128, 512], kernel_size=3, strides=(2, 2))
+#         # # self.identity_block_4_1 = identity_block_1D(512, [128, 128, 512], kernel_size=3)
+#         # # self.identity_block_4_2 = identity_block_1D(512, [128, 128, 512], kernel_size=3)
+#
+#         # if layer == 11 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or layer == 12 or
+#         # if layer == 10 or layer == 11 or layer == 12 or layer == 20 or layer == 0:
+#         #     s = 64
+#         # elif layer == 21 or layer == 22 or layer == 23 or layer == 30:
+#         #     s = 32
+#         # elif layer == 31 or layer == 32 or layer == 33 or layer == 34 or layer == 35 or layer == 40:
+#         #     s = 16
+#         # elif layer == 41 or layer == 42 or layer == 99:
+#         #     s = 8
+#
+#         # self.avgpool = nn.AvgPool2d(s)  # TODO: check the final size
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Linear(512*block_ex, num_classes)
+#
+#         # Initialize the weights
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#             elif isinstance(m, nn.BatchNorm1d):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#
+#     def forward(self, x):
+#         if self.layer == 0:
+#             feat = x
+#             x = self.avgpool(x)
+#             x = x.view(x.size(0), -1)
+#         x = self.conv_3x3(x)
+#         if self.layer == 0:
+#             x = x.view(x.size(0), x.size(1), 1, 1)
+#         # np.save('/nethome/yuefan/fanyue/dconv/fm3x3.npy', x.detach().cpu().numpy())
+#         if self.layer == 10:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.bottleneck_1(x)
+#         if self.layer == 11:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_1_1(x)
+#         if self.layer == 12:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_1_2(x)
+#
+#         if self.layer == 20:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.bottleneck_2(x)
+#         if self.layer == 21:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_2_1(x)
+#         if self.layer == 22:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_2_2(x)
+#         if self.layer == 23:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_2_3(x)
+#
+#         if self.layer == 30:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.bottleneck_3(x)
+#         if self.layer == 31:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_3_1(x)
+#         if self.layer == 32:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_3_2(x)
+#         if self.layer == 33:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_3_3(x)
+#         if self.layer == 34:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_3_4(x)
+#         if self.layer == 35:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_3_5(x)
+#
+#         if self.layer == 40:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.bottleneck_4(x)
+#         if self.layer == 41:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_4_1(x)
+#         if self.layer == 42:
+#             feat = x
+#             x = self.avgpool(x)
+#         x = self.identity_block_4_2(x)
+#         if self.layer == 99:
+#             feat = x
+#             x = self.avgpool(x)
+#         # print("feature shape:", x.size())
+#
+#         if self.include_top:
+#             x = x.view(x.size(0), -1)
+#             # print("feature shape:", x.size())
+#             # TODO: why there is no dropout
+#             x = self.fc(x)
+#         return x
+#
+#
+# class Resnet50_1x1(nn.Module):
+#     def __init__(self, dropout_rate, num_classes, include_top, layer):
+#         print('Resnet50_1x1 is used')
+#         super(Resnet50_1x1, self).__init__()
+#         self.dropout_rate = dropout_rate
+#         self.num_classes = num_classes
+#         self.include_top = include_top
+#         self.layer = layer
+#         block_ex = 4
+#
+#         # Define the building blocks
+#         if layer > 0:
+#             self.conv_3x3 = conv_1_3x3()
+#         else:
+#             self.conv_3x3 = conv_1_1x1()
+#
+#         if layer > 10:
+#             self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
+#         else:
+#             self.bottleneck_1 = bottleneck1x1(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], strides=(1, 1))
+#         if layer > 11:
+#             self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_1_1 = identity_block1x1(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex])
+#         if layer > 12:
+#             self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_1_2 = identity_block1x1(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex])
+#
+#         if layer > 20:
+#             self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_2 = nn.Sequential(bottleneck1x1(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], strides=(2, 2)))
+#         if layer > 21:
+#             self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_1 = identity_block1x1(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex])
+#         if layer > 22:
+#             self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_2 = identity_block1x1(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex])
+#         if layer > 23:
+#             self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_3 = identity_block1x1(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex])
+#
+#         if layer > 30:
+#             self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_3 = nn.Sequential(bottleneck1x1(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], strides=(2, 2)))
+#         if layer > 31:
+#             self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_1 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 32:
+#             self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_2 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 33:
+#             self.identity_block_3_3 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_3 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 34:
+#             self.identity_block_3_4 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_4 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 35:
+#             self.identity_block_3_5 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_5 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#
+#         if layer > 40:
+#             self.bottleneck_4 = bottleneck(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_4 = nn.Sequential(bottleneck1x1(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], strides=(2, 2)))
+#         if layer > 41:
+#             self.identity_block_4_1 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_4_1 = identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex])
+#         if layer > 42:
+#             self.identity_block_4_2 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_4_2 = identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex])
+#
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Linear(512*block_ex, num_classes)
+#
+#         # Initialize the weights
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#             elif isinstance(m, nn.BatchNorm1d):
+#                 raise Exception('BN1d is used, which you should not do!!!!!!!!!!!')
+#
+#     def forward(self, x):
+#         x = self.conv_3x3(x)
+#         x = self.bottleneck_1(x)
+#         x = self.identity_block_1_1(x)
+#         x = self.identity_block_1_2(x)
+#         x = self.bottleneck_2(x)
+#         x = self.identity_block_2_1(x)
+#         x = self.identity_block_2_2(x)
+#         x = self.identity_block_2_3(x)
+#         x = self.bottleneck_3(x)
+#         x = self.identity_block_3_1(x)
+#         x = self.identity_block_3_2(x)
+#         x = self.identity_block_3_3(x)
+#         x = self.identity_block_3_4(x)
+#         x = self.identity_block_3_5(x)
+#         x = self.bottleneck_4(x)
+#         x = self.identity_block_4_1(x)
+#         x = self.identity_block_4_2(x)
+#         # print("feature shape:", x.size())
+#
+#         if self.include_top:
+#             x = self.avgpool(x)
+#             x = x.view(x.size(0), -1)
+#             x = self.fc(x)
+#         return x
+#
+#
+# class Resnet50_1x1Dense(nn.Module):
+#     def __init__(self, dropout_rate, num_classes, include_top, layer):
+#         print('Resnet50_1x1Dense is used')
+#         super(Resnet50_1x1Dense, self).__init__()
+#         self.dropout_rate = dropout_rate
+#         self.num_classes = num_classes
+#         self.include_top = include_top
+#         self.layer = layer
+#         block_ex = 4
+#
+#         # Define the building blocks
+#         if layer > 0:
+#             self.conv_3x3 = conv_1_3x3()
+#         else:
+#             self.conv_3x3 = conv_1_1x1()
+#
+#         if layer > 10:
+#             self.bottleneck_1 = bottleneck(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3, strides=(1, 1))
+#         else:
+#             self.bottleneck_1 = bottleneck1x1(16*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], strides=(1, 1))
+#         if layer > 11:
+#             self.identity_block_1_1 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_1_1 = identity_block1x1(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex])
+#         if layer > 12:
+#             self.identity_block_1_2 = identity_block3(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_1_2 = identity_block1x1(64*block_ex, [16*block_ex, 16*block_ex, 64*block_ex])
+#
+#         if layer > 20:
+#             self.bottleneck_2 = bottleneck(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_2 = nn.Sequential(bottleneck1x1(64*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], strides=(1, 1)))
+#         if layer > 21:
+#             self.identity_block_2_1 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_1 = identity_block1x1(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex])
+#         if layer > 22:
+#             self.identity_block_2_2 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_2 = identity_block1x1(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex])
+#         if layer > 23:
+#             self.identity_block_2_3 = identity_block3(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_2_3 = identity_block1x1(128*block_ex, [32*block_ex, 32*block_ex, 128*block_ex])
+#
+#         if layer > 30:
+#             self.bottleneck_3 = bottleneck(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_3 = nn.Sequential(bottleneck1x1(128*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], strides=(1, 1)))
+#         if layer > 31:
+#             self.identity_block_3_1 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_1 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 32:
+#             self.identity_block_3_2 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_2 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 33:
+#             self.identity_block_3_3 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_3 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 34:
+#             self.identity_block_3_4 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_4 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#         if layer > 35:
+#             self.identity_block_3_5 = identity_block3(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_3_5 = identity_block1x1(256*block_ex, [64*block_ex, 64*block_ex, 256*block_ex])
+#
+#         if layer > 40:
+#             self.bottleneck_4 = bottleneck(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3, strides=(2, 2))
+#         else:
+#             self.bottleneck_4 = nn.Sequential(bottleneck1x1(256*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], strides=(1, 1)))
+#         if layer > 41:
+#             self.identity_block_4_1 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_4_1 = identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex])
+#         if layer > 42:
+#             self.identity_block_4_2 = identity_block3(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex], kernel_size=3)
+#         else:
+#             self.identity_block_4_2 = identity_block1x1(512*block_ex, [128*block_ex, 128*block_ex, 512*block_ex])
+#
+#         self.avgpool = nn.AdaptiveAvgPool2d(1)
+#         self.fc = nn.Linear(512*block_ex, num_classes)
+#
+#         # Initialize the weights
+#         for m in self.modules():
+#             if isinstance(m, nn.Conv2d):
+#                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+#             elif isinstance(m, nn.BatchNorm2d):
+#                 nn.init.constant_(m.weight, 1)
+#                 nn.init.constant_(m.bias, 0)
+#             elif isinstance(m, nn.BatchNorm1d):
+#                 raise Exception('BN1d is used, which you should not do!!!!!!!!!!!')
+#
+#     def forward(self, x):
+#         x = self.conv_3x3(x)
+#         x = self.bottleneck_1(x)
+#         x = self.identity_block_1_1(x)
+#         x = self.identity_block_1_2(x)
+#         x = self.bottleneck_2(x)
+#         x = self.identity_block_2_1(x)
+#         x = self.identity_block_2_2(x)
+#         x = self.identity_block_2_3(x)
+#         x = self.bottleneck_3(x)
+#         x = self.identity_block_3_1(x)
+#         x = self.identity_block_3_2(x)
+#         x = self.identity_block_3_3(x)
+#         x = self.identity_block_3_4(x)
+#         x = self.identity_block_3_5(x)
+#         x = self.bottleneck_4(x)
+#         x = self.identity_block_4_1(x)
+#         x = self.identity_block_4_2(x)
+#         # print("feature shape:", x.size())
+#
+#         if self.include_top:
+#             x = self.avgpool(x)
+#             x = x.view(x.size(0), -1)
+#             x = self.fc(x)
+#         return x
 
 
 class Resnet50_1x1LAP(nn.Module):
