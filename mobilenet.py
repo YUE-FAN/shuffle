@@ -1,3 +1,8 @@
+"""
+This is the training script for training all kinds of mobilnetv1 v2 with one GPU
+Remember to delete mobilenet_cos.py and mobilnetv2.py
+"""
+
 from __future__ import print_function
 
 import argparse
@@ -35,11 +40,11 @@ parser.add_argument('--epochs', default=300, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('--train-batch', default=8, type=int, metavar='N',
+parser.add_argument('--train-batch', default=256, type=int, metavar='N',
                     help='train batchsize')
-parser.add_argument('--test-batch', default=8, type=int, metavar='N',
+parser.add_argument('--test-batch', default=256, type=int, metavar='N',
                     help='test batchsize')
-parser.add_argument('--lr', '--learning-rate', default=0.045, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.05, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')
@@ -89,10 +94,6 @@ if use_cuda:
     torch.cuda.manual_seed_all(args.manualSeed)
     torch.backends.cudnn.deterministic = True
 best_acc = 0  # best test accuracy
-
-num_epochs_per_decay = 2.5
-imagenet_size = 1271167
-decay_steps = int(imagenet_size / args.train_batch * num_epochs_per_decay)
 
 
 def main():
@@ -162,6 +163,20 @@ def main():
             dropout_rate=1-0.999,
             layer=args.layer
         )
+    elif args.arch.endswith('mobilenetv2'):
+        model = models.__dict__[args.arch](
+            num_classes=1000
+        )
+    elif args.arch.endswith('mobilenetv2_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv2_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=1000,
+            layer=args.layer
+        )
     else:
         raise Exception('you should only choose vgg16_1d or d1_resnet50 as the model')
 
@@ -189,11 +204,9 @@ def main():
         logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title, resume=True)
         for param_group in optimizer.param_groups:
             state['lr'] = param_group['lr']
-        num_step = checkpoint['num_step']
     else:
         logger = Logger(os.path.join(args.checkpoint, 'log.txt'), title=title)
         logger.set_names(['Learning Rate', 'Train Loss', 'Valid Loss', 'Train Acc.', 'Valid Acc.'])
-        num_step = 1
 
     if args.evaluate:
         print('\nEvaluation only')
@@ -207,10 +220,9 @@ def main():
     #     state['lr'] = param_group['lr']
     print(state['lr'])
     for epoch in range(start_epoch, args.epochs):
-
         print('\nEpoch: [%d | %d] LR: %f' % (epoch + 1, args.epochs, state['lr']))
 
-        num_step, train_loss, train_acc = train(train_loader, model, criterion, optimizer, num_step, use_cuda)
+        train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, use_cuda)
         test_loss, test_acc = test(val_loader, model, criterion, epoch, use_cuda)
 
         # append logger file
@@ -220,13 +232,12 @@ def main():
         is_best = test_acc > best_acc
         best_acc = max(test_acc, best_acc)
         save_checkpoint({
-                'epoch': epoch + 1,
-                'state_dict': model.state_dict(),
-                'acc': test_acc,
-                'best_acc': best_acc,
-                'optimizer': optimizer.state_dict(),
-                'num_step': num_step
-            }, is_best, checkpoint=args.checkpoint)
+            'epoch': epoch + 1,
+            'state_dict': model.state_dict(),
+            'acc': test_acc,
+            'best_acc': best_acc,
+            'optimizer': optimizer.state_dict()
+        }, is_best, checkpoint=args.checkpoint)
 
     logger.close()
     logger.plot()
@@ -236,7 +247,7 @@ def main():
     print(best_acc)
 
 
-def train(train_loader, model, criterion, optimizer, num_step, use_cuda):
+def train(train_loader, model, criterion, optimizer, epoch, use_cuda):
     # switch to train mode
     model.train()
 
@@ -249,7 +260,7 @@ def train(train_loader, model, criterion, optimizer, num_step, use_cuda):
 
     bar = Bar('Processing', max=len(train_loader))
     for batch_idx, (inputs, targets) in enumerate(train_loader):
-        adjust_learning_rate(optimizer, num_step)
+        adjust_learning_rate(optimizer, epoch, batch_idx, len(train_loader))
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -271,7 +282,6 @@ def train(train_loader, model, criterion, optimizer, num_step, use_cuda):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        num_step = num_step + 1.0
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -291,7 +301,7 @@ def train(train_loader, model, criterion, optimizer, num_step, use_cuda):
                     )
         bar.next()
     bar.finish()
-    return num_step, losses.avg, top1.avg
+    return losses.avg, top1.avg
 
 
 def test(val_loader, model, criterion, epoch, use_cuda):
@@ -354,12 +364,16 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoin
         shutil.copyfile(filepath, os.path.join(checkpoint, 'model_best.pth.tar'))
 
 
-def adjust_learning_rate(optimizer, num_step):
+from math import cos, pi
+def adjust_learning_rate(optimizer, epoch, iteration, num_iter):
     global state
-    if num_step % decay_steps == 0:
-        state['lr'] *= 0.94
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = state['lr']
+
+    # state['lr'] = optimizer.param_groups[0]['lr']
+    current_iter = iteration + epoch * num_iter
+    max_iter = args.epochs * num_iter
+    state['lr'] = args.lr * (1 + cos(pi * current_iter / max_iter)) / 2
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = state['lr']
 
 
 if __name__ == '__main__':
