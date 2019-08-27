@@ -25,13 +25,13 @@ class Fire_1x1(nn.Module):
     def __init__(self, inplanes, squeeze_planes, expand1x1_planes, expand3x3_planes):
         super(Fire_1x1, self).__init__()
         self.inplanes = inplanes
-        # self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
-        # self.squeeze_activation = nn.ReLU(inplace=True)
-        self.expand1x1 = nn.Conv2d(inplanes, expand1x1_planes+expand3x3_planes, kernel_size=1)
+        self.squeeze = nn.Conv2d(inplanes, squeeze_planes, kernel_size=1)
+        self.squeeze_activation = nn.ReLU(inplace=True)
+        self.expand1x1 = nn.Conv2d(squeeze_planes, expand1x1_planes+expand3x3_planes, kernel_size=1)
         self.expand1x1_activation = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        # x = self.squeeze_activation(self.squeeze(x))
+        x = self.squeeze_activation(self.squeeze(x))
         return self.expand1x1_activation(self.expand1x1(x))
 
 
@@ -130,20 +130,20 @@ class SqueezeNet_1x1LMP(nn.Module):
         if layer > 5:
             self.fire6 = Fire(256, 48, 192, 192)
         else:
-            self.fire6 = Fire_1x1(256, 48, 192, 192)
+            self.fire6 = Fire_1x1(256, 150, 192, 192)
         if layer > 6:
             self.fire7 = Fire(384, 48, 192, 192)
         else:
-            self.fire7 = Fire_1x1(384, 48, 192, 192)
+            self.fire7 = Fire_1x1(384, 130, 192, 192)
         if layer > 7:
             self.fire8 = Fire(384, 64, 256, 256)
         else:
-            self.fire8 = Fire_1x1(384, 64, 256, 256)
+            self.fire8 = Fire_1x1(384, 200, 256, 256)
         self.pool2 = nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True)
         if layer > 8:
             self.fire9 = Fire(512, 64, 256, 256)
         else:
-            self.fire9 = Fire_1x1(512, 64, 256, 256)
+            self.fire9 = Fire_1x1(512, 180, 256, 256)
 
         # Final convolution is initialized differently form the rest
         final_conv = nn.Conv2d(512, self.num_classes, kernel_size=1)
