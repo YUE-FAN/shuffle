@@ -1,6 +1,6 @@
 """
-Use bbox.csv to re-arrange the ILSVRC2012/val/ into ILSVRC2012/bbox???/val/,
-where ??? is the size of the bbox. So inside each bbox???/val/, we still have 1000 class,
+Use bbox.csv to re-arrange the ILSVRC2012/val/ into ILSVRC2012/mean/bbox???/,
+where ??? is the size of the bbox. So inside each bbox???/, we still have 1000 class,
 just the number of val image for each class is different. We will use histogram to determine 10
 different image areas and then split images accordingly.
 
@@ -64,24 +64,24 @@ max_bins = histedges_equalN(max_list, num_bins)
 median_bins = histedges_equalN(median_list, num_bins)
 null_bins = histedges_equalN(null_list, num_bins)
 
-# for i in tqdm(range(50000)):
-#     area = mean_list[i]
-#     if area < mean_bins[1]:
-#         src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
-#         dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox0', name2class[id2name[i]], id2name[i])
-#     elif area < mean_bins[2] and area >= mean_bins[1]:
-#         src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
-#         dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox1', name2class[id2name[i]], id2name[i])
-#     elif area < mean_bins[3] and area >= mean_bins[2]:
-#         src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
-#         dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox2', name2class[id2name[i]], id2name[i])
-#     elif area < mean_bins[4] and area >= mean_bins[3]:
-#         src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
-#         dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox3', name2class[id2name[i]], id2name[i])
-#     else:
-#         src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
-#         dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox4', name2class[id2name[i]], id2name[i])
-#     copyfile(src, dst)
+for i in tqdm(range(50000)):
+    area = mean_list[i]
+    if area < mean_bins[1]:
+        src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
+        dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox0', name2class[id2name[i]], id2name[i])
+    elif area < mean_bins[2] and area >= mean_bins[1]:
+        src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
+        dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox1', name2class[id2name[i]], id2name[i])
+    elif area < mean_bins[3] and area >= mean_bins[2]:
+        src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
+        dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox2', name2class[id2name[i]], id2name[i])
+    elif area < mean_bins[4] and area >= mean_bins[3]:
+        src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
+        dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox3', name2class[id2name[i]], id2name[i])
+    else:
+        src = os.path.join('/BS/xian/work/data/imageNet1K/val/', id2name[i])
+        dst = os.path.join('/BS/yfan/nobackup/ILSVRC2012_bbox_val/mean/bbox4', name2class[id2name[i]], id2name[i])
+    copyfile(src, dst)
 
 for i in tqdm(range(50000)):
     area = max_list[i]

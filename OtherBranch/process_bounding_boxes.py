@@ -143,10 +143,14 @@ def ProcessXMLAnnotation(xml_file):
     box.filename = GetItem('filename', root) + '.JPEG'
     box.label = GetItem('name', root)
 
-    xmin = float(box.xmin) / float(box.width)
-    xmax = float(box.xmax) / float(box.width)
-    ymin = float(box.ymin) / float(box.height)
-    ymax = float(box.ymax) / float(box.height)
+    # xmin = float(box.xmin) / float(box.width)
+    # xmax = float(box.xmax) / float(box.width)
+    # ymin = float(box.ymin) / float(box.height)
+    # ymax = float(box.ymax) / float(box.height)
+    xmin = float(box.xmin)
+    xmax = float(box.xmax)
+    ymin = float(box.ymin)
+    ymax = float(box.ymax)
 
     # Some images contain bounding box annotations that
     # extend outside of the supplied image. See, e.g.
@@ -155,13 +159,17 @@ def ProcessXMLAnnotation(xml_file):
     # or the box is entirely outside of the image.
     min_x = min(xmin, xmax)
     max_x = max(xmin, xmax)
-    box.xmin_scaled = min(max(min_x, 0.0), 1.0)
-    box.xmax_scaled = min(max(max_x, 0.0), 1.0)
+    # box.xmin_scaled = min(max(min_x, 0.0), 1.0)
+    # box.xmax_scaled = min(max(max_x, 0.0), 1.0)
+    box.xmin_scaled = min(max(min_x, 0.0), box.width)
+    box.xmax_scaled = min(max(max_x, 0.0), box.width)
 
     min_y = min(ymin, ymax)
     max_y = max(ymin, ymax)
-    box.ymin_scaled = min(max(min_y, 0.0), 1.0)
-    box.ymax_scaled = min(max(max_y, 0.0), 1.0)
+    # box.ymin_scaled = min(max(min_y, 0.0), 1.0)
+    # box.ymax_scaled = min(max(max_y, 0.0), 1.0)
+    box.ymin_scaled = min(max(min_y, 0.0), box.height)
+    box.ymax_scaled = min(max(max_y, 0.0), box.height)
 
     boxes.append(box)
 
