@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# TODO: I ran python process_bounding_boxes.py /BS/yfan/nobackup/xmls/ | sort > /BS/yfan/nobackup/xmls/ILSVRC2012_bbox_val.csv
+# TODO: I ran python process_bounding_boxes.py /BS/yfan/nobackup/xmls/ | sort > /BS/yfan/nobackup/xmls/ILSVRC2012_bbox_val_float.csv
 # Copyright 2016 Google Inc. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -88,6 +88,10 @@ import sys
 import xml.etree.ElementTree as ET
 from six.moves import xrange  # pylint: disable=redefined-builtin
 
+# if FLOAT==True, the csv will be "ILSVRC2012_val_00000001.JPEG, 0.81, 0.96, 0.45, 0.71"
+# if FLOAT==False, the csv will be "ILSVRC2012_val_00000001.JPEG, 23, 44, 321, 157"
+FLOAT = False
+
 
 class BoundingBox(object):
   pass
@@ -143,14 +147,16 @@ def ProcessXMLAnnotation(xml_file):
     box.filename = GetItem('filename', root) + '.JPEG'
     box.label = GetItem('name', root)
 
-    # xmin = float(box.xmin) / float(box.width)
-    # xmax = float(box.xmax) / float(box.width)
-    # ymin = float(box.ymin) / float(box.height)
-    # ymax = float(box.ymax) / float(box.height)
-    xmin = float(box.xmin)
-    xmax = float(box.xmax)
-    ymin = float(box.ymin)
-    ymax = float(box.ymax)
+    if FLOAT:
+      xmin = float(box.xmin) / float(box.width)
+      xmax = float(box.xmax) / float(box.width)
+      ymin = float(box.ymin) / float(box.height)
+      ymax = float(box.ymax) / float(box.height)
+    else:
+      xmin = float(box.xmin)
+      xmax = float(box.xmax)
+      ymin = float(box.ymin)
+      ymax = float(box.ymax)
 
     # Some images contain bounding box annotations that
     # extend outside of the supplied image. See, e.g.
@@ -159,17 +165,21 @@ def ProcessXMLAnnotation(xml_file):
     # or the box is entirely outside of the image.
     min_x = min(xmin, xmax)
     max_x = max(xmin, xmax)
-    # box.xmin_scaled = min(max(min_x, 0.0), 1.0)
-    # box.xmax_scaled = min(max(max_x, 0.0), 1.0)
-    box.xmin_scaled = min(max(min_x, 0.0), box.width)
-    box.xmax_scaled = min(max(max_x, 0.0), box.width)
+    if FLOAT:
+      box.xmin_scaled = min(max(min_x, 0.0), 1.0)
+      box.xmax_scaled = min(max(max_x, 0.0), 1.0)
+    else:
+      box.xmin_scaled = min(max(min_x, 0.0), box.width)
+      box.xmax_scaled = min(max(max_x, 0.0), box.width)
 
     min_y = min(ymin, ymax)
     max_y = max(ymin, ymax)
-    # box.ymin_scaled = min(max(min_y, 0.0), 1.0)
-    # box.ymax_scaled = min(max(max_y, 0.0), 1.0)
-    box.ymin_scaled = min(max(min_y, 0.0), box.height)
-    box.ymax_scaled = min(max(max_y, 0.0), box.height)
+    if FLOAT:
+      box.ymin_scaled = min(max(min_y, 0.0), 1.0)
+      box.ymax_scaled = min(max(max_y, 0.0), 1.0)
+    else:
+      box.ymin_scaled = min(max(min_y, 0.0), box.height)
+      box.ymax_scaled = min(max(max_y, 0.0), box.height)
 
     boxes.append(box)
 
