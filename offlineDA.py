@@ -396,7 +396,7 @@ class SmallImageNet(data.Dataset):
     test_list = ['val_data']
 
     def __init__(self, file_path, imgsize, train, transform=None, target_transform=None):
-        assert imgsize == 32 or imgsize == 64, 'imgsize should only be 32 or 64'
+        # assert imgsize == 32 or imgsize == 64, 'imgsize should only be 32 or 64'
         self.imgsize = imgsize
         self.train = train
         self.transform = transform
