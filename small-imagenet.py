@@ -112,50 +112,86 @@ def main():
 
     # Data loading code
     print('==> Preparing dataset')
-    if args.DA:
-        print('use DA')
-        transform_train = transforms.Compose([
+    if args.img_size == 32:
+        if args.DA:
+            print('use DA')
+            transform_train = transforms.Compose([
             transforms.RandomCrop(32, padding=4),  # with p = 1
             transforms.RandomHorizontalFlip(),  # with p = 0.5
             transforms.ToTensor(),  # it must be this guy that makes it CHW again
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
-        ])
-    else:
-        print('no DA')
-        transform_train = transforms.Compose([
+            ])
+        else:
+            print('no DA')
+            transform_train = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225]),
-        ])
+            ])
 
-    transform_test = transforms.Compose([
+        transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225]),
-    ])
-
-    if args.img_size == 32:
-        trainset = SmallImageNet(args.data, args.img_size, True, transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,
-                                                   num_workers=args.workers)
-
-        valset = SmallImageNet(args.data, args.img_size, False, transform=transform_test)
-        val_loader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch, shuffle=False,
-                                                 num_workers=args.workers)
+        ])
     elif args.img_size == 64:
         if args.DA:
-            raise Exception('DA is not currenly supported by imgsize 64!!!')
+            print('use DA')
+            transform_train = transforms.Compose([
+            transforms.RandomCrop(64, padding=4),  # with p = 1
+            transforms.RandomHorizontalFlip(),  # with p = 0.5
+            transforms.ToTensor(),  # it must be this guy that makes it CHW again
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+            ])
+        else:
+            print('no DA')
+            transform_train = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+            ])
 
-        trainset = SmallImageNet(args.data, args.img_size, True, transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,
+        transform_test = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
+        ])
+    else:
+        if args.DA:
+            print('use DA')
+            transform_train = transforms.Compose([
+            transforms.RandomCrop(64, padding=4),  # TODO: check input size has to be 64!!!!!
+            transforms.RandomHorizontalFlip(),  # with p = 0.5
+            transforms.Resize(args.img_size),
+            transforms.ToTensor(),  # it must be this guy that makes it CHW again
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+            ])
+        else:
+            print('no DA')
+            transform_train = transforms.Compose([
+            transforms.Resize(args.img_size),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225]),
+            ])
+
+        transform_test = transforms.Compose([
+        transforms.Resize(args.img_size),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                             std=[0.229, 0.224, 0.225]),
+        ])
+
+    trainset = SmallImageNet(args.data, args.img_size, True, transform=transform_train)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True,
                                                    num_workers=args.workers)
 
-        valset = SmallImageNet(args.data, args.img_size, False, transform=transform_test)
-        val_loader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch, shuffle=False,
+    valset = SmallImageNet(args.data, args.img_size, False, transform=transform_test)
+    val_loader = torch.utils.data.DataLoader(valset, batch_size=args.test_batch, shuffle=False,
                                                  num_workers=args.workers)
-    else:
-        raise Exception('img size can only be 32 or 64')
 
     # create model
     if args.pretrained:
