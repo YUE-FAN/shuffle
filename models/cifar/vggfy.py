@@ -207,7 +207,7 @@ class DCONV_3x3(nn.Module):
     This is just a wraper for a dconv3x3
     """
 
-    def __init__(self, inplanes, outplanes, kernelsize, stride, padding, nrows, ncols, type):
+    def __init__(self, inplanes, outplanes, kernelsize, stride, padding, type):
         super(DCONV_3x3, self).__init__()
         """
         This if-elif is only for shuffle experiments, remember to get rid of it afterwards!
@@ -226,7 +226,7 @@ class DCONV_3x3(nn.Module):
         #     self.dconv = Dconv_crand(inplanes, outplanes, kernelsize, stride, padding)
         # else:
         #     raise Exception('The type of the dconv does not exit')
-        self.dconv = Dconv_localshuffle(inplanes, outplanes, kernelsize, stride, padding, nrows, ncols)
+        self.dconv = Dconv_shuffle(inplanes, outplanes, kernelsize, stride, padding)
         self.bn = nn.BatchNorm2d(outplanes)
         self.relu = nn.ReLU(inplace=True)
 
