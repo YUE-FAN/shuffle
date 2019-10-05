@@ -477,6 +477,7 @@ class identity_block3_dconv(nn.Module):
 class identity_block3_shuffle(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, type='error'):
         super(identity_block3_shuffle, self).__init__()
+        self.indices = None
         plane1, plane2, plane3 = planes
 
         self.conv1 = nn.Conv2d(inplanes, plane1, kernel_size=1, stride=1, padding=0, bias=False)
@@ -488,6 +489,11 @@ class identity_block3_shuffle(nn.Module):
         self.conv3 = nn.Conv2d(plane2, plane3, kernel_size=1, stride=1, padding=0, bias=False)
         self.bn3 = nn.BatchNorm2d(plane3)
         self.relu = nn.ReLU(inplace=True)
+
+    def _setup(self, inplane, spatial_size):
+        self.indices = np.empty((inplane, spatial_size), dtype=np.int64)
+        for i in range(inplane):
+            self.indices[i, :] = np.arange(self.indices.shape[1]) + i*self.indices.shape[1]
 
     def forward(self, input_tensor):
         out = self.conv1(input_tensor)
@@ -502,13 +508,12 @@ class identity_block3_shuffle(nn.Module):
         out = self.bn3(out)
 
         x_shape = input_tensor.size()  # [128, 3, 32, 32]
-        x = input_tensor.view(x_shape[0], x_shape[1] * x_shape[2] * x_shape[3])  # [128, 3*32*32]
-        shuffled_input = torch.empty(x_shape[0], x_shape[1], x_shape[2], x_shape[3]).cuda(0)
-        perm = torch.empty(0).float()
+        shuffled_input = input_tensor.view(x_shape[0], -1)
+        if self.indices is None:
+            self._setup(x_shape[1], x_shape[2] * x_shape[3])
         for i in range(x_shape[1]):
-            a = torch.randperm(x_shape[2] * x_shape[3]) + i * x_shape[2] * x_shape[3]
-            perm = torch.cat((perm, a.float()), 0)
-        shuffled_input[:, :, :, :] = x[:, perm.long()].view(x_shape[0], x_shape[1], x_shape[2], x_shape[3])
+            np.random.shuffle(self.indices[i])
+        shuffled_input = shuffled_input[:, torch.from_numpy(self.indices)].view(x_shape)
 
         out += shuffled_input
         out = self.relu(out)
@@ -899,6 +904,7 @@ class Resnet50_dconv(nn.Module):
         only one layer can be shuffled here
         """
         print('resnet50_dconv is used')
+        print('warning: local shuffle is used!')
         super(Resnet50_dconv, self).__init__()
         self.dropout_rate = dropout_rate
         self.num_classes = num_classes
