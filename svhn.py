@@ -12,6 +12,8 @@ TODO: 1. test different random crop function     2. add dropout layer
 TODO: 3. try different config of the channels    4. change the order of ReLU and BN
 TODO: 5. try sa and ca and dconv                 6. try add more linear layers
 TODO: 7. try different initialization methods    8. try AdamOptimizer
+
+Current training scheme is from https://arxiv.org/pdf/1605.07146.pdf
 """
 from __future__ import print_function
 
@@ -46,7 +48,7 @@ parser.add_argument('-d', '--dataset', default='cifar10', type=str)
 parser.add_argument('-j', '--workers', default=0, type=int, metavar='N',
                     help='number of data loading workers (default: 4)')
 # Optimization options
-parser.add_argument('--epochs', default=300, type=int, metavar='N',
+parser.add_argument('--epochs', default=160, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
@@ -54,11 +56,11 @@ parser.add_argument('--train-batch', default=128, type=int, metavar='N',
                     help='train batchsize')
 parser.add_argument('--test-batch', default=100, type=int, metavar='N',
                     help='test batchsize')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.01, type=float,
                     metavar='LR', help='initial learning rate')
 parser.add_argument('--drop', '--dropout', default=0, type=float,
                     metavar='Dropout', help='Dropout ratio')
-parser.add_argument('--schedule', type=int, nargs='+', default=[150, 225],
+parser.add_argument('--schedule', type=int, nargs='+', default=[80, 120],
                         help='Decrease learning rate at these epochs.')
 parser.add_argument('--gamma', type=float, default=0.1, help='LR is multiplied by gamma on schedule.')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
@@ -120,85 +122,140 @@ def main():
     if not os.path.isdir(args.checkpoint):
         mkdir_p(args.checkpoint)
 
-
-
     # Data
     print('==> Preparing dataset %s' % args.dataset)
     transform_train = transforms.Compose([
-        # transforms.RandomCrop(32, padding=4),  # with p = 1
-        # transforms.RandomHorizontalFlip(),  # with p = 0.5
-        transforms.ToTensor(),  # it must be this guy that makes it CHW again
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        transforms.ToTensor(),
+        # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
 
     transform_test = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     ])
     dataloader = datasets.SVHN
     num_classes = 10
 
-    trainset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='train', download=True,
+    trainset = dataloader(root='/BS/database11/SVHN/', split='train', download=True,
                           transform=transform_train)
     trainloader = data.DataLoader(trainset, batch_size=args.train_batch, shuffle=True, num_workers=args.workers)
 
-    testset = dataloader(root='/data/users/yuefan/fanyue/dconv/data', split='test', download=True,
+    testset = dataloader(root='/BS/database11/SVHN/', split='test', download=True,
                          transform=transform_test)
     testloader = data.DataLoader(testset, batch_size=args.test_batch, shuffle=False, num_workers=args.workers)
 
     # Model
     print("==> creating model '{}'".format(args.arch))
-    if args.arch.startswith('resnext'):
+    if args.arch.endswith('resnet50'):
         model = models.__dict__[args.arch](
-                    cardinality=args.cardinality,
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.endswith('densenet'):
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_cfiar100_1x1lmp'):
         model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    growthRate=args.growthRate,
-                    compressionRate=args.compressionRate,
-                    dropRate=args.drop,
-                )
-    elif args.arch.startswith('wrn'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                    widen_factor=args.widen_factor,
-                    dropRate=args.drop,
-                )
-    elif args.arch.endswith('resnet'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    depth=args.depth,
-                )
-    elif args.arch.startswith('resnet50'):
-        model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    include_top=True,
-                    dropout_rate=0,
-                    layer=args.layer
-                )
-    elif args.arch.startswith('d1_resnet50'):
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('d1_resnet50'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             include_top=True,
             dropout_rate=0,
             layer=args.layer,
-            is_shuff=False
+            is_shuff=False  # TODO: check
+        )
+    elif args.arch.endswith('resnet50_1x1'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_localshuffle'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            nblocks=args.nblocks
+        )
+    elif args.arch.endswith('resnet50_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('resnet50_dconv'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            nblocks=args.nblocks
+        )
+    elif args.arch.endswith('vgg16_dconv'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            nblocks=args.nblocks
+        )
+    elif args.arch.endswith('vgg16_truncated'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_del'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_cifar100_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
         )
     elif args.arch.endswith('vgg16'):
         model = models.__dict__[args.arch](
-                    num_classes=num_classes,
-                    include_top=True,
-                    dropout_rate=0,
-                    layer=args.layer
-                )
-    elif args.arch.endswith('vgg16_sa'):
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_shuffle'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_1x1dense'):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
             include_top=True,
@@ -213,6 +270,49 @@ def main():
             layer=args.layer,
             is_shuff=False
         )
+    elif args.arch.endswith('vgg16_1x1'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_1x1lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('vgg16_lmp'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer,
+            act_type=args.act_type
+        )
+    elif args.arch.endswith('vgg16_1x1lap'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1d'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
+    elif args.arch.endswith('mobilenetv1_1x1'):
+        model = models.__dict__[args.arch](
+            num_classes=num_classes,
+            include_top=True,
+            dropout_rate=0,
+            layer=args.layer
+        )
     elif args.arch.endswith("densenet_1d"):
         model = models.__dict__[args.arch](
             num_classes=num_classes,
@@ -220,18 +320,11 @@ def main():
             layer=args.layer
         )
     else:
-        model = models.__dict__[args.arch](num_classes=num_classes)
+        raise Exception('choose wrong model!!!!')
 
     model = torch.nn.DataParallel(model).cuda()
     cudnn.benchmark = False  # TODO: for deterministc result, this has to be false
     print('    Total params: %.2fM' % (sum(p.numel() for p in model.parameters())/1000000.0))
-
-    # for name, param in model.named_parameters():
-    #     print(name)
-    # for name in model.named_modules():
-    #     print(name)
-    # for param in model.parameters():
-    #     print(param)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -292,7 +385,6 @@ def main():
 
 
 def train(trainloader, model, criterion, optimizer, epoch, use_cuda):
-    # switch to train mode
     model.train()
 
     batch_time = AverageMeter()
@@ -304,8 +396,6 @@ def train(trainloader, model, criterion, optimizer, epoch, use_cuda):
 
     bar = Bar('Processing', max=len(trainloader))
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-        # print(type(inputs), type(targets))
-        # print(inputs.size(), len(targets))
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -410,7 +500,6 @@ def save_checkpoint(state, is_best, checkpoint='checkpoint', filename='checkpoin
 
 
 def adjust_learning_rate(optimizer, epoch):
-    # TODO: try to understand this part
     global state
     if epoch in args.schedule:
         state['lr'] *= args.gamma
