@@ -162,6 +162,10 @@ def main():
         model = models.__dict__[args.arch](num_classes=1000)
     elif args.arch.endswith('squeezenet_1x1lmp'):
         model = models.__dict__[args.arch](num_classes=1000, layer=args.layer)
+    elif args.arch.endswith('squeezenet_1d'):
+        model = models.__dict__[args.arch](num_classes=1000, layer=args.layer)
+    elif args.arch.endswith('squeezenet_shuffle'):
+        model = models.__dict__[args.arch](num_classes=1000, layer=args.layer)
     else:
         raise Exception('you should only choose squeezenet as the model')
 
