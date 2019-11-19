@@ -72,3 +72,8 @@ Since the size of images in CIFAR dataset is `32x32`, popular network structures
 
 ## Contribute
 Feel free to create a pull request if you find any bugs or you want to contribute (e.g., more datasets and more network structures).
+
+
+## To Dingfan:
+
+python cifar.py -a resnet50_1x1lmp -d cifar100 -j 0 --epochs 300 --schedule 150 225 -c xxx --layer 99 --img_size 32 --manualSeed 6 --DA --gpu-id 0 
